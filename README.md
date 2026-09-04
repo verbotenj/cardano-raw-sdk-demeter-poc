@@ -20,8 +20,7 @@ Mock custody reads the live Preview address and UTxOs through Demeter, builds a
 2 ADA transaction, derives the source payment key from `CARDANO_MNEMONIC`, and
 verifies a local witness. It never submits the transaction.
 
-Set `DEMETER_API_KEY`, both Cardano addresses, the mnemonic, and
-`RUN_LIVE_DEMETER=1`, then run:
+Set `DEMETER_API_KEY`, both Cardano addresses, and the mnemonic, then run:
 
 ```bash
 npm run poc:mock
