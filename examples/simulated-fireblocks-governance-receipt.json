@@ -6,6 +6,8 @@
     "network": "preview",
     "mode": "fireblocks",
     "transactionHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "confirmedTransactionHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "cardanoHashMatchesBody": true,
     "confirmed": true,
     "governance": {
       "externalTxId": "cardano-demeter-poc-example-not-live",
@@ -33,6 +35,8 @@
         "approvedAuthorizers": 1,
         "signerCount": 1,
         "designatedSignerEvidencePresent": true,
+        "configuredDesignatedSignerCount": 1,
+        "allSignersDesignated": true,
         "minimumApprovals": 1,
         "minimumSigners": 1,
         "requirementsSatisfied": true
@@ -53,7 +57,7 @@
       "signatureVerified": true,
       "signerMatchesSource": true,
       "transactionBodyUnchanged": true,
-      "onChainHashMatchesBody": true
+      "demeterSubmissionHashMatchesBody": true
     }
   },
   "privacy": {

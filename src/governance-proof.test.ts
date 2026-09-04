@@ -13,6 +13,13 @@ const changedBody = clone();
 changedBody.result.governance.transactionBodyHash = "a".repeat(64);
 assert.throws(() => verifyGovernanceReceipt(changedBody), /hashes must match/);
 
+const changedConfirmation = clone();
+changedConfirmation.result.confirmedTransactionHash = "a".repeat(64);
+assert.throws(
+  () => verifyGovernanceReceipt(changedConfirmation),
+  /Confirmed Cardano hash must match/,
+);
+
 const inadequateApproval = clone();
 inadequateApproval.result.governance.matchedPolicy.approvedAuthorizers = 0;
 assert.throws(
@@ -28,4 +35,4 @@ const exposedSecrets = clone();
 exposedSecrets.privacy.secretsIncluded = true;
 assert.throws(() => verifyGovernanceReceipt(exposedSecrets), /privacy flags/);
 
-console.log("Governance receipt tests passed (valid + 4 rejection cases).");
+console.log("Governance receipt tests passed (valid + 5 rejection cases).");

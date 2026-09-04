@@ -64,6 +64,15 @@ export const verifyGovernanceReceipt = (value: unknown) => {
       "Cardano, body, signed-message, and Demeter submission hashes must match",
     );
   }
+  const confirmedTransactionHash = stringAt(
+    result.confirmedTransactionHash,
+    "result.confirmedTransactionHash",
+  ).toLowerCase();
+  if (confirmedTransactionHash !== transactionHash) {
+    throw new Error(
+      "Confirmed Cardano hash must match the Demeter submission and signed body",
+    );
+  }
 
   const approved = numberAt(
     policy.approvedAuthorizers,
@@ -141,6 +150,7 @@ export const verifyGovernanceReceipt = (value: unknown) => {
     policy.designatedSignerEvidencePresent,
     "matchedPolicy.designatedSignerEvidencePresent",
   );
+  trueAt(policy.allSignersDesignated, "matchedPolicy.allSignersDesignated");
   trueAt(preflight.recipientAllowed, "preflight.recipientAllowed");
   trueAt(preflight.assetsPreserved, "preflight.assetsPreserved");
   trueAt(governance.signatureVerified, "governance.signatureVerified");
@@ -150,9 +160,10 @@ export const verifyGovernanceReceipt = (value: unknown) => {
     "governance.transactionBodyUnchanged",
   );
   trueAt(
-    governance.onChainHashMatchesBody,
-    "governance.onChainHashMatchesBody",
+    governance.demeterSubmissionHashMatchesBody,
+    "governance.demeterSubmissionHashMatchesBody",
   );
+  trueAt(result.cardanoHashMatchesBody, "result.cardanoHashMatchesBody");
 
   if (
     privacy.secretsIncluded !== false ||

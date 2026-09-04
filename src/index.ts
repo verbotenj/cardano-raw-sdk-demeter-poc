@@ -118,6 +118,17 @@ const positiveIntegerSetting = (name: string, fallback: number): number => {
   return value;
 };
 
+const requiredList = (name: string): string[] => {
+  const values = required(name)
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (!values.length || new Set(values).size !== values.length) {
+    throw new Error(`${name} must contain unique comma-separated values`);
+  }
+  return values;
+};
+
 const fingerprint = (value: string): string =>
   Buffer.from(blake2b(Buffer.from(value), undefined, 8)).toString("hex");
 
@@ -410,7 +421,14 @@ const waitForConfirmation = async (
   const deadline = Date.now() + 5 * 60_000;
   while (Date.now() < deadline) {
     const transaction = await provider.getTransactionDetails(txHash);
-    if (transaction) return transaction.data;
+    if (transaction) {
+      if (transaction.data.tx_hash.toLowerCase() !== txHash.toLowerCase()) {
+        throw new Error(
+          "Cardano confirmation hash does not match the submitted transaction hash",
+        );
+      }
+      return transaction.data;
+    }
     await new Promise((resolve) => setTimeout(resolve, 5_000));
   }
   throw new Error(
@@ -442,6 +460,7 @@ const runFireblocks = async (): Promise<Record<string, unknown>> => {
     1,
   );
   const minimumSigners = positiveIntegerSetting("FIREBLOCKS_MIN_SIGNERS", 1);
+  const allowedSignerIds = requiredList("FIREBLOCKS_DESIGNATED_SIGNER_IDS");
 
   logEvent(
     "governance-intent",
@@ -454,6 +473,7 @@ const runFireblocks = async (): Promise<Record<string, unknown>> => {
       maxFeeLovelace,
       minimumApprovals,
       minimumSigners,
+      configuredDesignatedSignerCount: allowedSignerIds.length,
     },
   );
 
@@ -482,6 +502,7 @@ const runFireblocks = async (): Promise<Record<string, unknown>> => {
         maxFeeLovelace,
         minimumApprovals,
         minimumSigners,
+        allowedSignerIds,
       },
     });
     if (!result.governance) {
@@ -498,6 +519,8 @@ const runFireblocks = async (): Promise<Record<string, unknown>> => {
         approvedAuthorizers:
           result.governance.matchedPolicy.approvedAuthorizers,
         signerCount: result.governance.matchedPolicy.signerCount,
+        allSignersDesignated:
+          result.governance.matchedPolicy.allSignersDesignated,
         transactionBodyHash: result.governance.transactionBodyHash,
         signatureVerified: result.governance.signatureVerified,
         signerMatchesSource: result.governance.signerMatchesSource,
@@ -508,12 +531,20 @@ const runFireblocks = async (): Promise<Record<string, unknown>> => {
       "Demeter accepted the exact Fireblocks-signed Cardano transaction",
       {
         transactionHash: result.txHash,
-        bodyHashMatched: result.governance.onChainHashMatchesBody,
+        bodyHashMatched: result.governance.demeterSubmissionHashMatchesBody,
         explorerUrl: previewExplorerUrl(result.txHash),
       },
     );
 
     const confirmation = await waitForConfirmation(provider, result.txHash);
+    const cardanoHashMatchesBody =
+      confirmation.tx_hash.toLowerCase() ===
+      result.governance.transactionBodyHash.toLowerCase();
+    if (!cardanoHashMatchesBody) {
+      throw new Error(
+        "Confirmed Cardano transaction hash does not match the Fireblocks-signed body",
+      );
+    }
     logEvent(
       "cardano-confirmation",
       "The governed transfer was confirmed on Cardano Preview",
@@ -529,6 +560,8 @@ const runFireblocks = async (): Promise<Record<string, unknown>> => {
       network,
       mode: "fireblocks",
       transactionHash: result.txHash,
+      confirmedTransactionHash: confirmation.tx_hash,
+      cardanoHashMatchesBody: true,
       explorerUrl: previewExplorerUrl(result.txHash),
       confirmed: true,
       blockHash: confirmation.block_hash,
