@@ -1,0 +1,31 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { verifyGovernanceReceipt } from "./governance-proof.js";
+
+const example = JSON.parse(
+  readFileSync("examples/simulated-fireblocks-governance-receipt.json", "utf8"),
+) as any;
+const clone = () => structuredClone(example);
+
+assert.equal(verifyGovernanceReceipt(clone()).verified, true);
+
+const changedBody = clone();
+changedBody.result.governance.transactionBodyHash = "a".repeat(64);
+assert.throws(() => verifyGovernanceReceipt(changedBody), /hashes must match/);
+
+const inadequateApproval = clone();
+inadequateApproval.result.governance.matchedPolicy.approvedAuthorizers = 0;
+assert.throws(
+  () => verifyGovernanceReceipt(inadequateApproval),
+  /quorum is below/,
+);
+
+const excessiveFee = clone();
+excessiveFee.result.governance.preflight.feeLovelace = 300001;
+assert.throws(() => verifyGovernanceReceipt(excessiveFee), /fee exceeds/);
+
+const exposedSecrets = clone();
+exposedSecrets.privacy.secretsIncluded = true;
+assert.throws(() => verifyGovernanceReceipt(exposedSecrets), /privacy flags/);
+
+console.log("Governance receipt tests passed (valid + 4 rejection cases).");

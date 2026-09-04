@@ -1,4 +1,5 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import {
   Address,
@@ -108,6 +109,17 @@ const transferAmount = (): number => {
   }
   return value;
 };
+
+const positiveIntegerSetting = (name: string, fallback: number): number => {
+  const value = Number(process.env[name] || fallback);
+  if (!Number.isSafeInteger(value) || value < 1) {
+    throw new Error(`${name} must be a positive integer`);
+  }
+  return value;
+};
+
+const fingerprint = (value: string): string =>
+  Buffer.from(blake2b(Buffer.from(value), undefined, 8)).toString("hex");
 
 const parseNetwork = (): Networks => {
   const value = (process.env.CARDANO_NETWORK || "preview").toLowerCase();
@@ -418,6 +430,33 @@ const runFireblocks = async (): Promise<Record<string, unknown>> => {
   }
 
   const provider = createProvider();
+  const recipientAddress = required("CARDANO_ADDRESS_2");
+  const lovelaceAmount = transferAmount();
+  const externalTxId = `cardano-demeter-poc-${randomUUID()}`;
+  const maxFeeLovelace = positiveIntegerSetting(
+    "FIREBLOCKS_MAX_FEE_LOVELACE",
+    300_000,
+  );
+  const minimumApprovals = positiveIntegerSetting(
+    "FIREBLOCKS_MIN_APPROVALS",
+    1,
+  );
+  const minimumSigners = positiveIntegerSetting("FIREBLOCKS_MIN_SIGNERS", 1);
+
+  logEvent(
+    "governance-intent",
+    "Prepared a unique governed Cardano transfer operation",
+    {
+      externalTxId,
+      network,
+      recipientFingerprint: fingerprint(recipientAddress),
+      amountLovelace: lovelaceAmount,
+      maxFeeLovelace,
+      minimumApprovals,
+      minimumSigners,
+    },
+  );
+
   const sdk = await FireblocksCardanoRawSDK.createInstance({
     fireblocksConfig: {
       apiKey: required("FIREBLOCKS_API_USER_KEY"),
@@ -435,14 +474,58 @@ const runFireblocks = async (): Promise<Record<string, unknown>> => {
 
   try {
     const result = await sdk.transferAda({
-      recipientAddress: required("CARDANO_ADDRESS_2"),
-      lovelaceAmount: transferAmount(),
+      recipientAddress,
+      lovelaceAmount,
+      governance: {
+        externalTxId,
+        allowedRecipientAddresses: [recipientAddress],
+        maxFeeLovelace,
+        minimumApprovals,
+        minimumSigners,
+      },
     });
-    const confirmation = await waitForConfirmation(provider, result.txHash);
-    console.log(
-      `Fireblocks/Demeter POC confirmed transaction ${result.txHash}`,
+    if (!result.governance) {
+      throw new Error("The SDK returned no Fireblocks governance evidence");
+    }
+
+    logEvent(
+      "fireblocks-authorization",
+      "Fireblocks authorization and signer requirements were satisfied",
+      {
+        externalTxId: result.governance.externalTxId,
+        fireblocksTransactionId: result.governance.fireblocksTransactionId,
+        fireblocksStatus: result.governance.fireblocksStatus,
+        approvedAuthorizers:
+          result.governance.matchedPolicy.approvedAuthorizers,
+        signerCount: result.governance.matchedPolicy.signerCount,
+        transactionBodyHash: result.governance.transactionBodyHash,
+        signatureVerified: result.governance.signatureVerified,
+        signerMatchesSource: result.governance.signerMatchesSource,
+      },
     );
-    return {
+    logEvent(
+      "demeter-submission",
+      "Demeter accepted the exact Fireblocks-signed Cardano transaction",
+      {
+        transactionHash: result.txHash,
+        bodyHashMatched: result.governance.onChainHashMatchesBody,
+        explorerUrl: previewExplorerUrl(result.txHash),
+      },
+    );
+
+    const confirmation = await waitForConfirmation(provider, result.txHash);
+    logEvent(
+      "cardano-confirmation",
+      "The governed transfer was confirmed on Cardano Preview",
+      {
+        transactionHash: result.txHash,
+        blockHash: confirmation.block_hash,
+        blockNumber: confirmation.block_no,
+        slot: confirmation.slot_no,
+      },
+    );
+
+    const summary = {
       network,
       mode: "fireblocks",
       transactionHash: result.txHash,
@@ -453,7 +536,26 @@ const runFireblocks = async (): Promise<Record<string, unknown>> => {
       slot: confirmation.slot_no,
       blockTime: confirmation.block_time,
       transactionSizeBytes: confirmation.size,
+      governance: result.governance,
     };
+
+    const receiptPath = saveJsonArtifact(`governance/${result.txHash}.json`, {
+      schemaVersion: 1,
+      evidenceType: "live-fireblocks-governed-transfer",
+      generatedAt: new Date().toISOString(),
+      result: summary,
+      privacy: {
+        secretsIncluded: false,
+        approverIdentitiesIncluded: false,
+        addressesIncluded: false,
+        signedCborIncluded: false,
+      },
+    });
+    console.log(
+      `Fireblocks/Demeter POC confirmed transaction ${result.txHash}`,
+    );
+    if (receiptPath) console.log(`Governance receipt saved: ${receiptPath}`);
+    return summary;
   } finally {
     await sdk.shutdown();
   }
