@@ -4,6 +4,7 @@ import {
   BaseAddress,
   Bip32PrivateKey,
   Credential,
+  Transaction,
   TransactionHash,
   TransactionWitnessSet,
   Vkeywitnesses,
@@ -23,6 +24,7 @@ import {
   calculateTtl,
   createTransactionInputs,
   fetchAndSelectUtxosForAda,
+  submitTransaction,
 } from "cardano-raw-sdk";
 import dotenv from "dotenv";
 
@@ -133,11 +135,20 @@ const createProvider = () =>
     apiKey: required("DEMETER_API_KEY"),
   });
 
-const runMock = async (): Promise<void> => {
+const previewExplorerUrl = (txHash: string): string =>
+  `https://preview.cardanoscan.io/transaction/${txHash}`;
+
+const runLocal = async (broadcast: boolean): Promise<void> => {
+  if (broadcast && !enabled("RUN_LIVE_LOCAL")) {
+    throw new Error(
+      "Set RUN_LIVE_LOCAL=1 to authorize signing and broadcasting Preview test ADA",
+    );
+  }
+
   const network = parseNetwork();
   if (network !== Networks.PREVIEW) {
     throw new Error(
-      "Mock mode is restricted to CARDANO_NETWORK=Preview so this tutorial cannot use real ADA.",
+      "Local custody is restricted to CARDANO_NETWORK=Preview so this POC cannot use real ADA.",
     );
   }
 
@@ -153,13 +164,18 @@ const runMock = async (): Promise<void> => {
     );
   }
 
-  console.log("\nCardano + Demeter guided mock transfer");
+  const totalSteps = broadcast ? 8 : 6;
+  console.log(
+    `\nCardano + Demeter ${broadcast ? "on-chain" : "mock"} transfer`,
+  );
   console.log(`Network: Preview | Amount: ${formatAda(lovelaceAmount)}`);
   console.log(
-    "Safety: this mode will build and sign locally, but it cannot submit.\n",
+    broadcast
+      ? "Live local custody: this will spend Preview test ADA and broadcast the transaction.\n"
+      : "Safety: this mode will build and sign locally, but it cannot submit.\n",
   );
 
-  step(1, 6, "Checking the Demeter Blockfrost connection...");
+  step(1, totalSteps, "Checking the Demeter Blockfrost connection...");
   const health = await provider.checkHealth();
   if (!health.success) {
     throw new Error(
@@ -167,13 +183,17 @@ const runMock = async (): Promise<void> => {
     );
   }
 
-  step(2, 6, "Reading the source address balance from Cardano Preview...");
+  step(
+    2,
+    totalSteps,
+    "Reading the source address balance from Cardano Preview...",
+  );
   const balance = await provider.getBalanceByAddress({
     address: senderAddress,
     groupByPolicy: false,
   });
 
-  step(3, 6, "Finding enough unspent transaction outputs (UTxOs)...");
+  step(3, totalSteps, "Finding enough unspent transaction outputs (UTxOs)...");
   const utxoResult = await fetchAndSelectUtxosForAda({
     chainProvider: provider,
     address: senderAddress,
@@ -182,7 +202,11 @@ const runMock = async (): Promise<void> => {
     transactionFee: CardanoAmounts.ESTIMATED_MAX_FEE,
   });
 
-  step(4, 6, "Building the unsigned transaction and calculating its fee...");
+  step(
+    4,
+    totalSteps,
+    "Building the unsigned transaction and calculating its fee...",
+  );
   const ttl = calculateTtl(await provider.getCurrentSlot());
   const inputs = createTransactionInputs(utxoResult.selectedUtxos);
   const built = buildAdaTransactionWithCalculatedFee(
@@ -197,13 +221,13 @@ const runMock = async (): Promise<void> => {
     1,
   );
 
-  step(5, 6, "Creating and verifying a local test witness...");
+  step(5, totalSteps, "Creating and verifying a local test witness...");
   const paymentKey = derivePaymentKey(mnemonic);
   assertPaymentKeyMatchesAddress(paymentKey, mnemonic, senderAddress);
   const hashBytes = Uint8Array.from(
     blake2b(built.txBody.to_bytes(), undefined, 32),
   );
-  const txHash = TransactionHash.from_bytes(hashBytes);
+  const bodyHash = TransactionHash.from_bytes(hashBytes);
   const rawKey = paymentKey.to_raw_key();
   const signature = rawKey.sign(hashBytes);
   if (!rawKey.to_public().verify(hashBytes, signature)) {
@@ -211,12 +235,36 @@ const runMock = async (): Promise<void> => {
   }
 
   const witnesses = Vkeywitnesses.new();
-  witnesses.add(make_vkey_witness(txHash, rawKey));
+  witnesses.add(make_vkey_witness(bodyHash, rawKey));
   const witnessSet = TransactionWitnessSet.new();
   witnessSet.set_vkeys(witnesses);
 
-  // Mock mode deliberately has no provider.submitTransaction() call.
-  step(6, 6, "Complete. The transaction was NOT submitted or broadcast.\n");
+  let submittedHash: string | undefined;
+  let confirmed = false;
+  if (broadcast) {
+    step(6, totalSteps, "Submitting signed CBOR through Demeter...");
+    const signedTransaction = Transaction.new(built.txBody, witnessSet);
+    try {
+      submittedHash = await submitTransaction(provider, signedTransaction);
+    } finally {
+      signedTransaction.free();
+    }
+
+    console.log(`Submitted transaction: ${submittedHash}`);
+    console.log(`Explorer: ${previewExplorerUrl(submittedHash)}\n`);
+    step(7, totalSteps, "Waiting for the transaction to appear on-chain...");
+    await waitForConfirmation(provider, submittedHash);
+    confirmed = true;
+    step(8, totalSteps, "Confirmed on Cardano Preview.\n");
+  } else {
+    // Mock mode deliberately has no provider.submitTransaction() call.
+    step(
+      6,
+      totalSteps,
+      "Complete. The transaction was NOT submitted or broadcast.\n",
+    );
+  }
+
   console.log(
     JSON.stringify(
       {
@@ -229,7 +277,12 @@ const runMock = async (): Promise<void> => {
         feeAda: formatAda(built.fee),
         feeLovelace: built.fee,
         witnessVerified: true,
-        submitted: false,
+        submitted: broadcast,
+        confirmed,
+        ...(submittedHash && {
+          transactionHash: submittedHash,
+          explorerUrl: previewExplorerUrl(submittedHash),
+        }),
       },
       null,
       2,
@@ -297,11 +350,13 @@ const main = async (): Promise<void> => {
 
   const mode = (process.env.CUSTODY_MODE || "mock").toLowerCase();
   if (mode === "mock") {
-    await runMock();
+    await runLocal(false);
+  } else if (mode === "local") {
+    await runLocal(true);
   } else if (mode === "fireblocks") {
     await runFireblocks();
   } else {
-    throw new Error("CUSTODY_MODE must be 'mock' or 'fireblocks'");
+    throw new Error("CUSTODY_MODE must be 'mock', 'local', or 'fireblocks'");
   }
 };
 
