@@ -94,6 +94,13 @@ shape without Fireblocks credentials:
 npm run proof:verify
 ```
 
+The walkthrough now presents the governed flow as nine beginner-friendly proof
+checkpoints. That matters because custody is only half the problem: Fireblocks can
+protect the key, but operators still need confidence that the key signed the
+intended Cardano payment and that Demeter submitted those same bytes. The receipt
+connects those responsibilities without giving either system more authority than
+it needs.
+
 ## What Demeter provides
 
 [Demeter](https://demeter.run/) hosts Cardano infrastructure so this example

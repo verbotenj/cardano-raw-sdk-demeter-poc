@@ -124,20 +124,37 @@ const main = async (): Promise<void> => {
     providerStatus: health.data.status,
   });
 
-  const [flatBalance, groupedBalance, utxos, currentSlot, transaction] =
-    await Promise.all([
-      provider.getBalanceByAddress({
-        address: sourceAddress,
-        groupByPolicy: false,
-      }),
-      provider.getBalanceByAddress({
-        address: sourceAddress,
-        groupByPolicy: true,
-      }),
-      provider.getUtxosByAddress(sourceAddress),
-      provider.getCurrentSlot(),
-      provider.getTransactionDetails(transactionHash),
-    ]);
+  const [
+    networkMagic,
+    flatBalance,
+    groupedBalance,
+    utxos,
+    currentSlot,
+    transaction,
+  ] = await Promise.all([
+    provider.getNetworkMagic(),
+    provider.getBalanceByAddress({
+      address: sourceAddress,
+      groupByPolicy: false,
+    }),
+    provider.getBalanceByAddress({
+      address: sourceAddress,
+      groupByPolicy: true,
+    }),
+    provider.getUtxosByAddress(sourceAddress),
+    provider.getCurrentSlot(),
+    provider.getTransactionDetails(transactionHash),
+  ]);
+
+  assert(
+    networkMagic === 2,
+    `Demeter network magic ${networkMagic} is not Cardano Preview network magic 2`,
+  );
+  passed("Demeter genesis identifies the Cardano Preview network", {
+    networkMagic,
+    expectedNetworkMagic: 2,
+    matchesConfiguredNetwork: true,
+  });
 
   assert(flatBalance.success, "Flat address balance query failed");
   assert(groupedBalance.success, "Grouped address balance query failed");
@@ -178,7 +195,8 @@ const main = async (): Promise<void> => {
   });
 
   assert(
-    Number.isSafeInteger(currentSlot) && currentSlot > receipt.confirmation.slot,
+    Number.isSafeInteger(currentSlot) &&
+      currentSlot > receipt.confirmation.slot,
     "Latest Cardano slot is not newer than the saved confirmed transaction",
   );
   passed("Latest Cardano slot is available through Demeter", {
@@ -186,7 +204,10 @@ const main = async (): Promise<void> => {
     newerThanSavedProof: true,
   });
 
-  assert(transaction?.success, "Confirmed transaction was not found through Demeter");
+  assert(
+    transaction?.success,
+    "Confirmed transaction was not found through Demeter",
+  );
   assert(
     transaction.data.tx_hash.toLowerCase() === transactionHash.toLowerCase(),
     "Demeter transaction hash does not match the requested hash",
@@ -205,7 +226,9 @@ const main = async (): Promise<void> => {
   passed("Confirmed transaction details are readable through Demeter", {
     transactionHash,
     receiptCrossCheck:
-      transactionHash === receipt.transaction.hash ? "matched" : "not-requested",
+      transactionHash === receipt.transaction.hash
+        ? "matched"
+        : "not-requested",
     blockNumber: transaction.data.block_no,
     slot: transaction.data.slot_no,
     feeLovelace: transaction.data.fee,
@@ -217,7 +240,7 @@ const main = async (): Promise<void> => {
     generatedAt: new Date().toISOString(),
     proofScope: "upstream-readme-demeter-core",
     upstreamReadmeRevision: "4fe86e8af026f26281ca1ab6f44d4395e5a58409",
-    sdkForkRevision: "ecd341b20e3aa4d258429d95a94890d8dfcae166",
+    sdkForkRevision: "10728f966fde07874342ba4e22938eaff4196d00",
     network: "preview",
     provider: "demeter",
     readOnly: true,
@@ -252,7 +275,9 @@ const main = async (): Promise<void> => {
     mode: 0o600,
   });
 
-  console.log(`\n${checks.length}/${checks.length} live Demeter checks passed.`);
+  console.log(
+    `\n${checks.length}/${checks.length} live Demeter checks passed.`,
+  );
   console.log("No transaction was submitted by this proof command.");
   console.log(`Sanitized report saved: ${outputPath}`);
 };

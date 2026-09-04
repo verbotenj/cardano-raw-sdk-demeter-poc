@@ -54,7 +54,7 @@ This page audits the feature list in the
 | Stake registration, pool delegation, reward withdrawal | **Not supported by Demeter yet** | These methods require the `staking` capability. |
 | Pool metadata, delegators, and blocks | **Not supported by Demeter yet** | These methods require the `pools` capability. |
 | Asset metadata and supply | **Not supported by Demeter yet** | Demeter returns on-chain asset quantities for the core path, but the richer metadata endpoint requires `asset-metadata`. |
-| Mainnet, preprod, and preview | **Code-supported; Preview live proven** | The fork recognizes all three networks. This beginner POC deliberately allows live local signing only on Preview. Each network needs the matching Demeter resource URL. |
+| Mainnet, preprod, and preview | **Code-supported; Preview live proven** | The fork recognizes all three networks. Governed signing checks Demeter `/genesis` against the expected network magic before Fireblocks is called. This beginner POC deliberately allows live local signing only on Preview. |
 | Connection pooling | **Provider-independent** | Pooling manages SDK instances. It is application infrastructure, not Cardano data supplied by Demeter. |
 | REST API server | **Configured for Demeter; not live proven here** | The server accepts `CHAIN_PROVIDER=demeter`. Routes backed by `core` work; routes requiring an unsupported capability return an error. |
 | Docker support | **Provider-independent** | A Docker image packages the application. It does not prove any Cardano endpoint works. |
@@ -76,7 +76,8 @@ That one command performs four gates:
 3. Runs the mock transaction tutorial, including SDK UTxO selection, fee
    calculation, body construction, and local witness verification. Mock mode
    cannot submit.
-4. Calls live Demeter endpoints and cross-checks the known confirmed transaction.
+4. Calls live Demeter endpoints, proves `/genesis` reports Preview network magic
+   `2`, and cross-checks the known confirmed transaction.
 
 The last gate writes a sanitized report to:
 

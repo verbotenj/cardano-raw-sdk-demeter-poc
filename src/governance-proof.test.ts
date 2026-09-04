@@ -31,8 +31,19 @@ const excessiveFee = clone();
 excessiveFee.result.governance.preflight.feeLovelace = 300001;
 assert.throws(() => verifyGovernanceReceipt(excessiveFee), /fee exceeds/);
 
+const wrongNetwork = clone();
+wrongNetwork.result.governance.preflight.providerNetworkMagic = 1;
+assert.throws(() => verifyGovernanceReceipt(wrongNetwork), /network magic 2/);
+
+const inconsistentPolicy = clone();
+inconsistentPolicy.result.governance.matchedPolicy.groups[0].approved = 0;
+assert.throws(
+  () => verifyGovernanceReceipt(inconsistentPolicy),
+  /group satisfaction does not match/,
+);
+
 const exposedSecrets = clone();
 exposedSecrets.privacy.secretsIncluded = true;
 assert.throws(() => verifyGovernanceReceipt(exposedSecrets), /privacy flags/);
 
-console.log("Governance receipt tests passed (valid + 5 rejection cases).");
+console.log("Governance receipt tests passed (valid + 7 rejection cases).");

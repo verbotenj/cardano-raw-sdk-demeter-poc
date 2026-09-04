@@ -53,7 +53,7 @@ The dependency and execution path provide reproducible SDK provenance:
    governed fork commit.
 2. [`package-lock.json`](../package-lock.json#L799) resolves that dependency
    to exact SDK commit
-   [`ecd341b20e3aa4d258429d95a94890d8dfcae166`](https://github.com/verbotenj/cardano-raw-sdk/commit/ecd341b20e3aa4d258429d95a94890d8dfcae166).
+   [`10728f966fde07874342ba4e22938eaff4196d00`](https://github.com/verbotenj/cardano-raw-sdk/commit/10728f966fde07874342ba4e22938eaff4196d00).
    This lock prevents a normal `npm ci` from silently using a different SDK
    revision even if the fork's `main` branch later advances.
 3. [`src/index.ts`](../src/index.ts#L18) imports the provider, UTxO selector,
@@ -66,7 +66,7 @@ The dependency and execution path provide reproducible SDK provenance:
    execution path.
 5. The SDK submission helper serializes the signed transaction to CBOR and
    delegates it to the selected `CardanoDataProvider`:
-   [`src/utils/cardano.ts`](https://github.com/verbotenj/cardano-raw-sdk/blob/ecd341b20e3aa4d258429d95a94890d8dfcae166/src/utils/cardano.ts#L561-L584).
+   [`src/utils/cardano.ts`](https://github.com/verbotenj/cardano-raw-sdk/blob/10728f966fde07874342ba4e22938eaff4196d00/src/utils/cardano.ts#L561-L584).
 
 The POC uses Cardano Serialization Library directly for local key derivation and
 witness construction. Transaction selection, transaction-body construction,
@@ -82,17 +82,17 @@ The provider route is explicit from configuration to HTTP request:
    `DEMETER_API_KEY`.
 2. The SDK provider identifies itself as `kind = "demeter"` and implements the
    provider-neutral `CardanoDataProvider` interface:
-   [`demeter-blockfrost.provider.ts`](https://github.com/verbotenj/cardano-raw-sdk/blob/ecd341b20e3aa4d258429d95a94890d8dfcae166/src/services/demeter-blockfrost.provider.ts#L70-L78).
+   [`demeter-blockfrost.provider.ts`](https://github.com/verbotenj/cardano-raw-sdk/blob/10728f966fde07874342ba4e22938eaff4196d00/src/services/demeter-blockfrost.provider.ts#L74-L82).
 3. Its HTTP client uses the configured Demeter base URL and authenticates every
    request with the `dmtr-api-key` header:
-   [`demeter-blockfrost.provider.ts`](https://github.com/verbotenj/cardano-raw-sdk/blob/ecd341b20e3aa4d258429d95a94890d8dfcae166/src/services/demeter-blockfrost.provider.ts#L80-L104).
-4. The provider reads `/health`, `/addresses/{address}`,
+   [`demeter-blockfrost.provider.ts`](https://github.com/verbotenj/cardano-raw-sdk/blob/10728f966fde07874342ba4e22938eaff4196d00/src/services/demeter-blockfrost.provider.ts#L84-L108).
+4. The provider reads `/health`, `/genesis`, `/addresses/{address}`,
    `/addresses/{address}/utxos`, and `/blocks/latest` through that client.
 5. Submission posts binary CBOR to `/tx/submit` with
    `Content-Type: application/cbor`:
-   [`demeter-blockfrost.provider.ts`](https://github.com/verbotenj/cardano-raw-sdk/blob/ecd341b20e3aa4d258429d95a94890d8dfcae166/src/services/demeter-blockfrost.provider.ts#L169-L185).
+   [`demeter-blockfrost.provider.ts`](https://github.com/verbotenj/cardano-raw-sdk/blob/10728f966fde07874342ba4e22938eaff4196d00/src/services/demeter-blockfrost.provider.ts#L179-L195).
 6. Confirmation polls `/txs/{hash}` through the same provider:
-   [`demeter-blockfrost.provider.ts`](https://github.com/verbotenj/cardano-raw-sdk/blob/ecd341b20e3aa4d258429d95a94890d8dfcae166/src/services/demeter-blockfrost.provider.ts#L188-L210).
+   [`demeter-blockfrost.provider.ts`](https://github.com/verbotenj/cardano-raw-sdk/blob/10728f966fde07874342ba4e22938eaff4196d00/src/services/demeter-blockfrost.provider.ts#L198-L220).
 
 The execution log records the corresponding sequence: Demeter health check,
 address and UTxO reads, SDK transaction build, submission through Demeter, and
@@ -107,18 +107,18 @@ The POC now passes a strict `governance` object into the fork's public
    sets an explicit fee ceiling and approval/signer counts, and calls the SDK:
    [`runFireblocks()`](../src/index.ts#L421).
 2. The SDK preflight validates the complete locally built transaction before the
-   Fireblocks request:
-   [`FireblocksCardanoRawSDK.ts`](https://github.com/verbotenj/cardano-raw-sdk/blob/ecd341b20e3aa4d258429d95a94890d8dfcae166/src/FireblocksCardanoRawSDK.ts#L1667-L1941).
+   Fireblocks request, including Demeter's authoritative network magic:
+   [`FireblocksCardanoRawSDK.ts`](https://github.com/verbotenj/cardano-raw-sdk/blob/10728f966fde07874342ba4e22938eaff4196d00/src/FireblocksCardanoRawSDK.ts#L1717-L1957).
 3. It sends only the exact body hash with `externalTxId`, checks Fireblocks
    authorization-group and signer evidence, verifies the Ed25519 signature and
    source key, and proves witness assembly did not change the body:
-   [`FireblocksCardanoRawSDK.ts`](https://github.com/verbotenj/cardano-raw-sdk/blob/ecd341b20e3aa4d258429d95a94890d8dfcae166/src/FireblocksCardanoRawSDK.ts#L958-L1236).
+   [`FireblocksCardanoRawSDK.ts`](https://github.com/verbotenj/cardano-raw-sdk/blob/10728f966fde07874342ba4e22938eaff4196d00/src/FireblocksCardanoRawSDK.ts#L989-L1287).
 4. The Demeter path rejects a returned submission hash that differs from the
    Fireblocks-signed body hash:
-   [`FireblocksCardanoRawSDK.ts`](https://github.com/verbotenj/cardano-raw-sdk/blob/ecd341b20e3aa4d258429d95a94890d8dfcae166/src/FireblocksCardanoRawSDK.ts#L1978-L2057).
+   [`FireblocksCardanoRawSDK.ts`](https://github.com/verbotenj/cardano-raw-sdk/blob/10728f966fde07874342ba4e22938eaff4196d00/src/FireblocksCardanoRawSDK.ts#L2030-L2115).
 5. SDK tests exercise a real Cardano transaction body and real Ed25519 signatures
-   with mocked Fireblocks and Demeter boundaries, including nine rejection cases:
-   [`FireblocksCardanoRawSDK.governance.test.ts`](https://github.com/verbotenj/cardano-raw-sdk/blob/ecd341b20e3aa4d258429d95a94890d8dfcae166/src/__tests__/FireblocksCardanoRawSDK.governance.test.ts#L128-L369).
+   with mocked Fireblocks and Demeter boundaries, including eleven rejection cases:
+   [`FireblocksCardanoRawSDK.governance.test.ts`](https://github.com/verbotenj/cardano-raw-sdk/blob/10728f966fde07874342ba4e22938eaff4196d00/src/__tests__/FireblocksCardanoRawSDK.governance.test.ts#L139-L429).
 6. The POC saves successful live evidence to `output/governance/<hash>.json`, and
    [`verifyGovernanceReceipt()`](../src/governance-proof.ts) independently checks
    its correlation invariants.

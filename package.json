@@ -23,7 +23,7 @@
     "@fireblocks/ts-sdk": "^12.1.1",
     "bip39": "^3.1.0",
     "blakejs": "^1.2.1",
-    "cardano-raw-sdk": "git+https://github.com/verbotenj/cardano-raw-sdk.git#ecd341b20e3aa4d258429d95a94890d8dfcae166",
+    "cardano-raw-sdk": "git+https://github.com/verbotenj/cardano-raw-sdk.git#10728f966fde07874342ba4e22938eaff4196d00",
     "dotenv": "^16.5.0"
   },
   "devDependencies": {
