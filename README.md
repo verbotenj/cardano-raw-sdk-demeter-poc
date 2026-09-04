@@ -112,9 +112,9 @@ the [Demeter compatibility audit](docs/DEMETER_README_COMPATIBILITY.md).
 | Proof layer | What you can verify |
 | --- | --- |
 | Source | The dependency is pinned to the [Demeter-enabled SDK revision](https://github.com/verbotenj/cardano-raw-sdk/commit/411f8ecc00b78cbecd950fb53b2dbd9c492951ba). |
-| Contract tests | Provider tests cover normalized IAGON and Demeter behavior, including binary CBOR submission. |
+| Contract tests | Provider tests cover normalized IAGON and Demeter behavior, including binary CBOR submission. The local [on-chain proof tests](src/on-chain-proof.test.ts) reject seven kinds of altered or unsafe evidence. |
 | Live Demeter reads | `npm run proof:demeter` checks Preview health, network, balance, UTxOs, slot, and an already-confirmed transaction. It does not broadcast. |
-| On-chain result | The saved [receipt](examples/confirmed-preview-transaction.json), [execution log](examples/confirmed-preview-run.txt), and [Cardano explorer record](https://preview.cardanoscan.io/transaction/becf7855c04240e0f0961f2bf646e22ad4fa0f75fbe45f15ca2af31a77bee800) correlate the SDK-built transaction, Demeter submission, and Cardano confirmation. |
+| On-chain result | The saved [receipt](examples/confirmed-preview-transaction.json), [execution log](examples/confirmed-preview-run.txt), [fresh chain-verification report](examples/on-chain-verification.json), and [Cardano explorer record](https://preview.cardanoscan.io/transaction/becf7855c04240e0f0961f2bf646e22ad4fa0f75fbe45f15ca2af31a77bee800) correlate the SDK-built transaction, Demeter submission, and Cardano confirmation. |
 
 The chain itself records transaction bytes and settlement—not the name of the
 SDK or gateway. That provenance is demonstrated by the pinned SDK source, the
@@ -297,9 +297,22 @@ npm run proof:demeter
 
 This type-checks the POC, verifies its tests, builds and signs a mock transaction,
 then checks live Demeter health, balances, UTxOs, the latest slot, and the saved
-confirmed transaction. It never broadcasts a new transaction. The exact scope
-and unsupported features are documented in
+confirmed transaction. It finishes by independently comparing the committed
+receipt with fresh Demeter transaction data. It never broadcasts a new
+transaction. The exact scope and unsupported features are documented in
 [`docs/DEMETER_README_COMPATIBILITY.md`](docs/DEMETER_README_COMPATIBILITY.md).
+
+To verify only the existing on-chain result—without a mnemonic, wallet address,
+transaction build, or broadcast—run:
+
+```bash
+npm run proof:chain
+```
+
+This read-only check requires only the Demeter URL and API key. It verifies the
+Preview network magic, fetches the committed transaction, matches its hash,
+block, slot, time, fee, and byte size to the receipt, and writes sanitized JSON
+and text logs under `output/proofs/`.
 
 The runner prints six stages followed by a summary similar to:
 
@@ -359,6 +372,8 @@ This repository includes the sanitized evidence from its first confirmed run:
 
 - [Confirmed transaction receipt](examples/confirmed-preview-transaction.json)
 - [On-chain execution log](examples/confirmed-preview-run.txt)
+- [Fresh read-only on-chain verification](examples/on-chain-verification.json)
+- [Read-only verification log](examples/on-chain-verification.txt)
 - [Live Demeter README proof report](examples/demeter-readme-compatibility-proof.json)
 - [Proof chain: Cardano Raw SDK, Demeter, and on-chain evidence](docs/PROOFS.md)
 - [Original README compatibility audit](docs/DEMETER_README_COMPATIBILITY.md)

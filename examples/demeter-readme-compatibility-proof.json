@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-09-04T04:07:35.381Z",
+  "generatedAt": "2026-09-04T21:35:42.550Z",
   "proofScope": "upstream-readme-demeter-core",
   "upstreamReadmeRevision": "4fe86e8af026f26281ca1ab6f44d4395e5a58409",
   "sdkForkRevision": "411f8ecc00b78cbecd950fb53b2dbd9c492951ba",
@@ -14,7 +14,9 @@
       "status": "passed",
       "evidence": {
         "provider": "demeter",
-        "capabilities": ["core"]
+        "capabilities": [
+          "core"
+        ]
       }
     },
     {
@@ -66,10 +68,13 @@
       "evidence": {
         "transactionHash": "becf7855c04240e0f0961f2bf646e22ad4fa0f75fbe45f15ca2af31a77bee800",
         "receiptCrossCheck": "matched",
+        "blockHash": "2c08961c68da4ba1c5d1246dfc48917c6ed5dfb37d2df6c6f51c58192d978434",
         "blockNumber": 4629643,
         "slot": 121833286,
         "feeLovelace": 170297,
-        "transactionSizeBytes": 299
+        "transactionSizeBytes": 299,
+        "currentSlot": 121901727,
+        "confirmationDepthSlots": 68441
       }
     }
   ],

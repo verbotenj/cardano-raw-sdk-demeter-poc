@@ -1,0 +1,10 @@
+Cardano + Demeter read-only on-chain verification
+Generated: 2026-09-04T21:34:34.911Z
+Provider: demeter | Network: preview | Network magic: 2
+Transaction: becf7855c04240e0f0961f2bf646e22ad4fa0f75fbe45f15ca2af31a77bee800
+Block: 4629643 (2c08961c68da4ba1c5d1246dfc48917c6ed5dfb37d2df6c6f51c58192d978434)
+Slot: 121833286 | Current slot: 121901674
+Fee: 170297 lovelace | Size: 299 bytes
+PASS transaction found on Cardano Preview
+PASS live chain fields match committed receipt
+PASS no transaction was submitted by this verification

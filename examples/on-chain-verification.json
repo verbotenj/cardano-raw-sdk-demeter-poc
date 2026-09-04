@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-04T21:34:34.911Z",
+  "proofType": "live-read-only-chain-verification",
+  "provider": "demeter",
+  "network": "preview",
+  "readOnly": true,
+  "submittedTransaction": false,
+  "checks": [
+    {
+      "claim": "Demeter provider is healthy",
+      "status": "passed",
+      "evidence": {
+        "provider": "demeter",
+        "status": "healthy"
+      }
+    },
+    {
+      "claim": "Provider is connected to Cardano Preview",
+      "status": "passed",
+      "evidence": {
+        "networkMagic": 2,
+        "expectedNetworkMagic": 2
+      }
+    },
+    {
+      "claim": "Transaction is included in a Cardano block",
+      "status": "passed",
+      "evidence": {
+        "transactionHash": "becf7855c04240e0f0961f2bf646e22ad4fa0f75fbe45f15ca2af31a77bee800",
+        "blockHash": "2c08961c68da4ba1c5d1246dfc48917c6ed5dfb37d2df6c6f51c58192d978434",
+        "blockNumber": 4629643,
+        "slot": 121833286,
+        "blockTime": "2026-09-04T02:34:46.000Z"
+      }
+    },
+    {
+      "claim": "Live chain fields match the committed receipt",
+      "status": "passed",
+      "evidence": {
+        "receiptMatchesChain": true,
+        "feeLovelace": 170297,
+        "transactionSizeBytes": 299
+      }
+    },
+    {
+      "claim": "Cardano has advanced beyond the confirmation slot",
+      "status": "passed",
+      "evidence": {
+        "transactionSlot": 121833286,
+        "currentSlot": 121901674,
+        "confirmationDepthSlots": 68388
+      }
+    }
+  ],
+  "result": {
+    "verified": true,
+    "network": "preview",
+    "networkMagic": 2,
+    "transactionHash": "becf7855c04240e0f0961f2bf646e22ad4fa0f75fbe45f15ca2af31a77bee800",
+    "blockHash": "2c08961c68da4ba1c5d1246dfc48917c6ed5dfb37d2df6c6f51c58192d978434",
+    "blockNumber": 4629643,
+    "slot": 121833286,
+    "blockTime": "2026-09-04T02:34:46.000Z",
+    "transferLovelace": 2000000,
+    "feeLovelace": 170297,
+    "transactionSizeBytes": 299,
+    "currentSlot": 121901674,
+    "confirmationDepthSlots": 68388,
+    "receiptMatchesChain": true
+  },
+  "privacy": {
+    "apiKeyIncluded": false,
+    "mnemonicIncluded": false,
+    "addressesIncluded": false,
+    "signedCborIncluded": false
+  }
+}
