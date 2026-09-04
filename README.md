@@ -1,37 +1,131 @@
-# Cardano + Demeter beginner POC
+<div align="center">
 
-This project is a small, safe introduction to building a Cardano ADA transfer with
-the Demeter-enabled
-[`verbotenj/cardano-raw-sdk`](https://github.com/verbotenj/cardano-raw-sdk) fork.
-It uses Cardano **Preview**, reads blockchain data through Demeter's
-Blockfrost-compatible API, builds a 2 ADA transaction, and verifies a local test
-signature. An explicitly gated local-custody command can then submit that signed
-transaction through Demeter and return a real Preview transaction hash.
+# Fireblocks Cardano: one SDK, two chain providers
 
-The default `mock` mode **never submits or broadcasts the transaction**. You do
-not need Fireblocks credentials for either the mock or local on-chain flow.
+**Keep the Fireblocks Cardano transaction flow. Choose IAGON or Demeter for
+Cardano chain access.**
 
-## What you will learn
+[![Cardano](https://img.shields.io/badge/Cardano-Preview-0033AD?logo=cardano&logoColor=white)](https://preview.cardanoscan.io/)
+[![Providers](https://img.shields.io/badge/chain_provider-IAGON%20%7C%20Demeter-6F42C1)](#the-wiring-in-one-picture)
+[![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=nodedotjs&logoColor=white)](package.json)
+[![Proof](https://img.shields.io/badge/POC-on--chain%20proof-2EA44F)](examples/confirmed-preview-transaction.json)
 
-By running the example, you will see the main parts of a Cardano transfer:
+[See the SDK fork](https://github.com/verbotenj/cardano-raw-sdk) ·
+[Inspect the proof](docs/PROOFS.md) ·
+[View the confirmed transaction](https://preview.cardanoscan.io/transaction/becf7855c04240e0f0961f2bf646e22ad4fa0f75fbe45f15ca2af31a77bee800)
 
-1. Ask Demeter whether its Blockfrost service is available.
-2. Read an address balance and its unspent transaction outputs (UTxOs).
-3. Select enough UTxOs to cover the amount and network fee.
-4. Build an unsigned transaction with an input, recipient output, change, fee,
-   and expiry slot.
-5. Derive the payment key from a **test-wallet** recovery phrase.
-6. Create and verify a witness (signature) locally.
-7. When explicitly enabled, submit the signed CBOR through Demeter and wait for
-   on-chain confirmation.
+</div>
 
-The POC consumes the SDK from its fork; it does not duplicate SDK source code.
+> [!IMPORTANT]
+> **The provider switch is the main idea of this POC.** The SDK no longer ties
+> its core ADA-transfer path directly to IAGON. Your application supplies one
+> `chainProvider` configuration object, and the SDK wires the matching provider
+> behind a shared Cardano interface. Existing IAGON integrations remain valid;
+> this repository proves the new Demeter route.
 
-The original Fireblocks README lists the full IAGON-backed SDK. Demeter support
-is intentionally narrower. See the beginner-friendly
-[`Demeter README compatibility audit`](docs/DEMETER_README_COMPATIBILITY.md) for
-an item-by-item table of what is live-proven, test-proven, provider-independent,
-or not yet supported.
+## The wiring in one picture
+
+```mermaid
+flowchart LR
+    APP[Your application] --> SDK[FireblocksCardanoRawSDK]
+    SDK --> FB[Fireblocks<br/>address, policy and RAW signing]
+    SDK --> PICK{chainProvider.type}
+    PICK -->|iagon| IAGON[IagonApiService]
+    PICK -->|demeter| DEMETER[DemeterBlockfrostProvider]
+    IAGON -->|chain data + submission| CARDANO[(Cardano)]
+    DEMETER -->|chain data + submission| CARDANO
+
+    classDef app fill:#f6f8fa,stroke:#57606a,color:#24292f
+    classDef sdk fill:#fff3cd,stroke:#d4a72c,color:#24292f
+    classDef fireblocks fill:#e7f5ff,stroke:#1c7ed6,color:#24292f
+    classDef provider fill:#f3f0ff,stroke:#7048e8,color:#24292f
+    classDef chain fill:#e6fcf5,stroke:#099268,color:#24292f
+    class APP app
+    class SDK,PICK sdk
+    class FB fireblocks
+    class IAGON,DEMETER provider
+    class CARDANO chain
+```
+
+The responsibilities stay separate:
+
+| Component | Beginner explanation | What it does here |
+| --- | --- | --- |
+| Your application | Chooses the route | Passes `type: "iagon"` or `type: "demeter"` |
+| Fireblocks SDK | Builds and coordinates | Builds the Cardano transaction and, in governed mode, requests RAW signing |
+| IAGON or Demeter | Connects the SDK to Cardano | Reads balances/UTxOs and submits signed transaction bytes |
+| Cardano | Final public record | Validates the transaction and includes it in a block |
+
+Fireblocks does **not** replace a Cardano chain-data provider, and the provider
+does **not** receive the Fireblocks private key. The two integrations meet inside
+the SDK around the exact transaction bytes that are built, signed, submitted,
+and confirmed.
+
+## Switching providers is one configuration choice
+
+The application-facing difference is deliberately small:
+
+```ts
+// Keep the original IAGON-backed behavior.
+chainProvider: {
+  type: "iagon",
+  apiKey: process.env.IAGON_API_KEY!,
+}
+```
+
+```ts
+// Select the new Demeter Blockfrost-backed behavior.
+chainProvider: {
+  type: "demeter",
+  baseUrl: process.env.DEMETER_BLOCKFROST_URL!,
+  apiKey: process.env.DEMETER_API_KEY!,
+}
+```
+
+Pass either object as `chainProvider` to
+`FireblocksCardanoRawSDK.createInstance(...)`. The old `iagonApiKey` option is
+still accepted as a deprecated compatibility path, so existing users are not
+forced to migrate immediately.
+
+### Verified directly in the code
+
+This is implemented behavior, not only a diagram:
+
+| Claim | Code evidence |
+| --- | --- |
+| Both providers share one core contract | [`CardanoDataProvider`](https://github.com/verbotenj/cardano-raw-sdk/blob/411f8ecc00b78cbecd950fb53b2dbd9c492951ba/src/types/providers.ts#L19-L37) defines health, balance, UTxO, slot, submission, and confirmation operations. |
+| Configuration accepts either provider | [`ChainProviderConfig`](https://github.com/verbotenj/cardano-raw-sdk/blob/411f8ecc00b78cbecd950fb53b2dbd9c492951ba/src/types/providers.ts#L39-L52) is an `iagon`/`demeter` TypeScript union. |
+| The SDK performs the wiring | [`createInstance()`](https://github.com/verbotenj/cardano-raw-sdk/blob/411f8ecc00b78cbecd950fb53b2dbd9c492951ba/src/FireblocksCardanoRawSDK.ts#L243-L316) selects `IagonApiService` or `DemeterBlockfrostProvider`. |
+| IAGON remains supported | [`IagonApiService`](https://github.com/verbotenj/cardano-raw-sdk/blob/411f8ecc00b78cbecd950fb53b2dbd9c492951ba/src/services/iagon.api.service.ts#L86-L104) implements the shared contract and retains the extended SDK feature set. |
+| Demeter is a real provider implementation | [`DemeterBlockfrostProvider`](https://github.com/verbotenj/cardano-raw-sdk/blob/411f8ecc00b78cbecd950fb53b2dbd9c492951ba/src/services/demeter-blockfrost.provider.ts#L66-L108) implements the contract and authenticates with `dmtr-api-key`. |
+| This POC exercises the Demeter branch | [`createProvider()`](src/index.ts#L203-L207) constructs Demeter for the local flow, while the [Fireblocks flow](src/index.ts#L480-L493) passes the Demeter configuration through `createInstance()`. |
+
+IAGON implements the SDK's broad, existing feature surface. Initial Demeter
+support intentionally targets the complete ADA-transfer path: health, network
+identity, balance, UTxOs, current slot, signed-CBOR submission, and transaction
+confirmation. Calls that still require an IAGON-only capability fail clearly
+instead of silently using the wrong backend. The detailed boundary is listed in
+the [Demeter compatibility audit](docs/DEMETER_README_COMPATIBILITY.md).
+
+## What this POC proves
+
+| Proof layer | What you can verify |
+| --- | --- |
+| Source | The dependency is pinned to the [Demeter-enabled SDK revision](https://github.com/verbotenj/cardano-raw-sdk/commit/411f8ecc00b78cbecd950fb53b2dbd9c492951ba). |
+| Contract tests | Provider tests cover normalized IAGON and Demeter behavior, including binary CBOR submission. |
+| Live Demeter reads | `npm run proof:demeter` checks Preview health, network, balance, UTxOs, slot, and an already-confirmed transaction. It does not broadcast. |
+| On-chain result | The saved [receipt](examples/confirmed-preview-transaction.json), [execution log](examples/confirmed-preview-run.txt), and [Cardano explorer record](https://preview.cardanoscan.io/transaction/becf7855c04240e0f0961f2bf646e22ad4fa0f75fbe45f15ca2af31a77bee800) correlate the SDK-built transaction, Demeter submission, and Cardano confirmation. |
+
+The chain itself records transaction bytes and settlement—not the name of the
+SDK or gateway. That provenance is demonstrated by the pinned SDK source, the
+provider-specific request code, the sanitized execution log, Demeter's returned
+hash, and Cardano confirming the same hash.
+
+The default `mock` mode **never submits or broadcasts**. It reads Preview through
+Demeter, builds a 2 ADA transaction, and verifies a local test signature. The
+explicitly gated local mode submits those signed bytes and returns a real Preview
+transaction hash. Neither mode needs Fireblocks credentials; the separate
+governed mode demonstrates Fireblocks RAW signing.
 
 ## A five-minute Cardano mental model
 
