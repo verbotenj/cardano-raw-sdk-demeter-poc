@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-04T03:51:03.822Z",
+  "proofScope": "upstream-readme-demeter-core",
+  "upstreamReadmeRevision": "4fe86e8af026f26281ca1ab6f44d4395e5a58409",
+  "sdkForkRevision": "ecd341b20e3aa4d258429d95a94890d8dfcae166",
+  "network": "preview",
+  "provider": "demeter",
+  "readOnly": true,
+  "submittedTransaction": false,
+  "checks": [
+    {
+      "claim": "SDK selected the Demeter core provider",
+      "status": "passed",
+      "evidence": {
+        "provider": "demeter",
+        "capabilities": ["core"]
+      }
+    },
+    {
+      "claim": "Demeter Blockfrost health endpoint is reachable",
+      "status": "passed",
+      "evidence": {
+        "providerStatus": "healthy"
+      }
+    },
+    {
+      "claim": "Address balance works in flat and policy-grouped form",
+      "status": "passed",
+      "evidence": {
+        "lovelaceIsSafeInteger": true,
+        "assetCount": 0,
+        "policyCount": 0,
+        "flatAndGroupedMatch": true
+      }
+    },
+    {
+      "claim": "Address UTxOs are returned in the SDK model",
+      "status": "passed",
+      "evidence": {
+        "utxoCount": 1,
+        "allTransactionIdsValid": true,
+        "allLovelaceQuantitiesSafe": true
+      }
+    },
+    {
+      "claim": "Latest Cardano slot is available through Demeter",
+      "status": "passed",
+      "evidence": {
+        "slotIsSafeInteger": true,
+        "newerThanSavedProof": true
+      }
+    },
+    {
+      "claim": "Confirmed transaction details are readable through Demeter",
+      "status": "passed",
+      "evidence": {
+        "transactionHash": "becf7855c04240e0f0961f2bf646e22ad4fa0f75fbe45f15ca2af31a77bee800",
+        "receiptCrossCheck": "matched",
+        "blockNumber": 4629643,
+        "slot": 121833286,
+        "feeLovelace": 170297,
+        "transactionSizeBytes": 299
+      }
+    }
+  ],
+  "conclusion": {
+    "passed": 6,
+    "failed": 0,
+    "coreProviderWorks": true,
+    "fullUpstreamFeatureParity": false
+  },
+  "limitations": [
+    "This command does not broadcast a new transaction.",
+    "A prior sanitized receipt supplies the transaction submitted by the POC.",
+    "Fireblocks custody, CNT transfers, staking, Cardano governance, pools, full history, and asset metadata are outside this live proof."
+  ],
+  "privacy": {
+    "apiKeyIncluded": false,
+    "mnemonicIncluded": false,
+    "addressesIncluded": false,
+    "signedCborIncluded": false
+  }
+}

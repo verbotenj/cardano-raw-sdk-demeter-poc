@@ -27,6 +27,12 @@ By running the example, you will see the main parts of a Cardano transfer:
 
 The POC consumes the SDK from its fork; it does not duplicate SDK source code.
 
+The original Fireblocks README lists the full IAGON-backed SDK. Demeter support
+is intentionally narrower. See the beginner-friendly
+[`Demeter README compatibility audit`](docs/DEMETER_README_COMPATIBILITY.md) for
+an item-by-item table of what is live-proven, test-proven, provider-independent,
+or not yet supported.
+
 ## A five-minute Cardano mental model
 
 - **ADA** is Cardano's native currency. **Lovelace** is its smallest unit:
@@ -181,6 +187,19 @@ npm run demo
 
 `npm run poc:mock` is an equivalent, more explicit command.
 
+To run the complete safe proof against the claims in the original Fireblocks
+README, use:
+
+```bash
+npm run proof:demeter
+```
+
+This type-checks the POC, verifies its tests, builds and signs a mock transaction,
+then checks live Demeter health, balances, UTxOs, the latest slot, and the saved
+confirmed transaction. It never broadcasts a new transaction. The exact scope
+and unsupported features are documented in
+[`docs/DEMETER_README_COMPATIBILITY.md`](docs/DEMETER_README_COMPATIBILITY.md).
+
 The runner prints six stages followed by a summary similar to:
 
 ```json
@@ -239,7 +258,9 @@ This repository includes the sanitized evidence from its first confirmed run:
 
 - [Confirmed transaction receipt](examples/confirmed-preview-transaction.json)
 - [On-chain execution log](examples/confirmed-preview-run.txt)
+- [Live Demeter README proof report](examples/demeter-readme-compatibility-proof.json)
 - [Proof chain: Cardano Raw SDK, Demeter, and on-chain evidence](docs/PROOFS.md)
+- [Original README compatibility audit](docs/DEMETER_README_COMPATIBILITY.md)
 
 On-chain transactions cannot be undone. Although Preview ADA has no real-world
 value, always verify `CARDANO_ADDRESS_2` and the amount before running this
