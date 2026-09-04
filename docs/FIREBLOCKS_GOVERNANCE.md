@@ -121,15 +121,19 @@ FIREBLOCKS_VAULT_ACCOUNT_ID=
 # These local requirements should agree with or exceed your TAP expectations.
 FIREBLOCKS_MIN_APPROVALS=1
 FIREBLOCKS_MIN_SIGNERS=1
+# Comma-separated Fireblocks user IDs permitted to sign this request.
+FIREBLOCKS_DESIGNATED_SIGNER_IDS=
 FIREBLOCKS_MAX_FEE_LOVELACE=300000
 
 # Leave disabled until the recipient, amount, vault, and policy are reviewed.
 RUN_LIVE_FIREBLOCKS=0
 ```
 
-`CARDANO_ADDRESS_2` is the only recipient permitted by this POC run. The POC
-generates a new `cardano-demeter-poc-<uuid>` external transaction ID each time; it
-does not accept a reusable ID from the environment.
+`CARDANO_ADDRESS_2` is the only recipient permitted by this POC run.
+`FIREBLOCKS_DESIGNATED_SIGNER_IDS` must list the exact Fireblocks user IDs that TAP
+designates to sign the RAW request; the SDK rejects every other `signedBy` value.
+The POC generates a new `cardano-demeter-poc-<uuid>` external transaction ID each
+time and does not accept a reusable ID from the environment.
 
 ## Run it
 
@@ -173,7 +177,8 @@ A successful receipt contains:
 - Fireblocks terminal status and sanitized authorization-group counts;
 - required and observed approval/signer counts;
 - preflight network, amount, fee ceiling, input/output totals, and asset result;
-- exact transaction-body, signed-message, Demeter submission, and Cardano hashes;
+- exact transaction-body, signed-message, Demeter submission, and confirmed
+  Cardano hashes, with separate match assertions for submission and confirmation;
 - signature, source signer, immutable body, and confirmation booleans;
 - Cardano block, slot, timestamp, and explorer URL.
 
@@ -189,9 +194,10 @@ request/usage records, and an independent Cardano explorer or node.
 
 The SDK governed pipeline is covered by automated tests using a real Cardano
 transaction body and real Ed25519 signatures with mocked Fireblocks and Demeter
-responses. Those tests cover the successful correlation and rejection before
-submission for a disallowed recipient, excessive fee, insufficient approvals, and
-insufficient signers.
+responses. Those tests cover the successful correlation and rejection for a
+disallowed recipient, excessive fee, insufficient approvals, insufficient or
+undesignated signers, mismatched Fireblocks IDs, incomplete Fireblocks status,
+invalid signatures, and mismatched Demeter submission hashes.
 
 The repository does **not** claim a live Fireblocks governance result yet because
 no Fireblocks workspace credentials and policy were available in the development
