@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import {
   Address,
   BaseAddress,
@@ -25,10 +26,57 @@ import {
   createTransactionInputs,
   fetchAndSelectUtxosForAda,
   submitTransaction,
+  type DetailedTransaction,
 } from "cardano-raw-sdk";
 import dotenv from "dotenv";
 
 dotenv.config({ path: process.env.CARDANO_ENV_FILE || ".env.development" });
+
+interface RunLogEntry {
+  timestamp: string;
+  event: string;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
+const runStartedAt = new Date().toISOString();
+const runLog: RunLogEntry[] = [];
+
+const logEvent = (
+  event: string,
+  message: string,
+  details?: Record<string, unknown>,
+): void => {
+  const entry: RunLogEntry = {
+    timestamp: new Date().toISOString(),
+    event,
+    message,
+    ...(details && { details }),
+  };
+  runLog.push(entry);
+  console.log(`[${entry.timestamp}] ${message}`);
+};
+
+const saveJsonArtifact = (
+  relativePath: string,
+  value: unknown,
+): string | undefined => {
+  try {
+    const outputRoot = resolve(process.env.POC_OUTPUT_DIR || "output");
+    const artifactPath = resolve(outputRoot, relativePath);
+    mkdirSync(dirname(artifactPath), { recursive: true });
+    writeFileSync(artifactPath, `${JSON.stringify(value, null, 2)}\n`, {
+      encoding: "utf8",
+      mode: 0o600,
+    });
+    return artifactPath;
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown file error";
+    console.warn(`Could not save ${relativePath}: ${message}`);
+    return undefined;
+  }
+};
 
 const required = (name: string): string => {
   const value = process.env[name]?.trim();
@@ -43,7 +91,7 @@ const required = (name: string): string => {
 const enabled = (name: string): boolean => process.env[name] === "1";
 
 const step = (current: number, total: number, message: string): void => {
-  console.log(`[${current}/${total}] ${message}`);
+  logEvent("step", `[${current}/${total}] ${message}`, { current, total });
 };
 
 const formatAda = (lovelace: number): string => {
@@ -138,7 +186,9 @@ const createProvider = () =>
 const previewExplorerUrl = (txHash: string): string =>
   `https://preview.cardanoscan.io/transaction/${txHash}`;
 
-const runLocal = async (broadcast: boolean): Promise<void> => {
+const runLocal = async (
+  broadcast: boolean,
+): Promise<Record<string, unknown>> => {
   if (broadcast && !enabled("RUN_LIVE_LOCAL")) {
     throw new Error(
       "Set RUN_LIVE_LOCAL=1 to authorize signing and broadcasting Preview test ADA",
@@ -174,6 +224,11 @@ const runLocal = async (broadcast: boolean): Promise<void> => {
       ? "Live local custody: this will spend Preview test ADA and broadcast the transaction.\n"
       : "Safety: this mode will build and sign locally, but it cannot submit.\n",
   );
+  logEvent("configuration", "Validated Preview local-custody configuration", {
+    network,
+    mode: broadcast ? "local" : "mock",
+    transferLovelace: lovelaceAmount,
+  });
 
   step(1, totalSteps, "Checking the Demeter Blockfrost connection...");
   const health = await provider.checkHealth();
@@ -200,6 +255,10 @@ const runLocal = async (broadcast: boolean): Promise<void> => {
     lovelaceAmount,
     // Reserve a conservative fee first; the builder calculates the exact fee next.
     transactionFee: CardanoAmounts.ESTIMATED_MAX_FEE,
+  });
+  logEvent("utxo-selection", "Selected transaction inputs", {
+    selectedUtxos: utxoResult.selectedUtxos.length,
+    selectedLovelace: utxoResult.accumulatedAda,
   });
 
   step(
@@ -238,65 +297,108 @@ const runLocal = async (broadcast: boolean): Promise<void> => {
   witnesses.add(make_vkey_witness(bodyHash, rawKey));
   const witnessSet = TransactionWitnessSet.new();
   witnessSet.set_vkeys(witnesses);
+  const signedTransaction = Transaction.new(built.txBody, witnessSet);
+  const signedCborBytes = signedTransaction.to_bytes().length;
+  logEvent(
+    "transaction-built",
+    "Built and locally verified the signed transaction",
+    {
+      transferLovelace: lovelaceAmount,
+      feeLovelace: built.fee,
+      signedCborBytes,
+    },
+  );
 
   let submittedHash: string | undefined;
-  let confirmed = false;
-  if (broadcast) {
-    step(6, totalSteps, "Submitting signed CBOR through Demeter...");
-    const signedTransaction = Transaction.new(built.txBody, witnessSet);
-    try {
+  let confirmation: DetailedTransaction | undefined;
+  try {
+    if (broadcast) {
+      step(6, totalSteps, "Submitting signed CBOR through Demeter...");
       submittedHash = await submitTransaction(provider, signedTransaction);
-    } finally {
-      signedTransaction.free();
-    }
+      logEvent("submission", "Demeter accepted the transaction", {
+        transactionHash: submittedHash,
+        explorerUrl: previewExplorerUrl(submittedHash),
+      });
 
-    console.log(`Submitted transaction: ${submittedHash}`);
-    console.log(`Explorer: ${previewExplorerUrl(submittedHash)}\n`);
-    step(7, totalSteps, "Waiting for the transaction to appear on-chain...");
-    await waitForConfirmation(provider, submittedHash);
-    confirmed = true;
-    step(8, totalSteps, "Confirmed on Cardano Preview.\n");
-  } else {
-    // Mock mode deliberately has no provider.submitTransaction() call.
-    step(
-      6,
-      totalSteps,
-      "Complete. The transaction was NOT submitted or broadcast.\n",
-    );
+      console.log(`Submitted transaction: ${submittedHash}`);
+      console.log(`Explorer: ${previewExplorerUrl(submittedHash)}\n`);
+      step(7, totalSteps, "Waiting for the transaction to appear on-chain...");
+      confirmation = await waitForConfirmation(provider, submittedHash);
+      logEvent("confirmation", "Transaction confirmed on Cardano Preview", {
+        transactionHash: submittedHash,
+        blockHash: confirmation.block_hash,
+        blockNumber: confirmation.block_no,
+        slot: confirmation.slot_no,
+        blockTime: confirmation.block_time,
+        feeLovelace: confirmation.fee,
+        transactionSizeBytes: confirmation.size,
+      });
+      step(8, totalSteps, "Confirmed on Cardano Preview.\n");
+    } else {
+      // Mock mode deliberately has no provider.submitTransaction() call.
+      step(
+        6,
+        totalSteps,
+        "Complete. The transaction was NOT submitted or broadcast.\n",
+      );
+    }
+  } finally {
+    signedTransaction.free();
   }
 
-  console.log(
-    JSON.stringify(
-      {
-        network,
-        balanceAda: formatAda(balance.data.lovelace),
-        balanceLovelace: balance.data.lovelace,
-        selectedUtxos: utxoResult.selectedUtxos.length,
-        transferAda: formatAda(lovelaceAmount),
-        transferLovelace: lovelaceAmount,
-        feeAda: formatAda(built.fee),
-        feeLovelace: built.fee,
-        witnessVerified: true,
-        submitted: broadcast,
-        confirmed,
-        ...(submittedHash && {
-          transactionHash: submittedHash,
-          explorerUrl: previewExplorerUrl(submittedHash),
-        }),
+  const summary: Record<string, unknown> = {
+    network,
+    balanceAda: formatAda(balance.data.lovelace),
+    balanceLovelace: balance.data.lovelace,
+    selectedUtxos: utxoResult.selectedUtxos.length,
+    transferAda: formatAda(lovelaceAmount),
+    transferLovelace: lovelaceAmount,
+    feeAda: formatAda(built.fee),
+    feeLovelace: built.fee,
+    signedCborBytes,
+    witnessVerified: true,
+    submitted: broadcast,
+    confirmed: Boolean(confirmation),
+    ...(submittedHash && {
+      transactionHash: submittedHash,
+      explorerUrl: previewExplorerUrl(submittedHash),
+    }),
+    ...(confirmation && {
+      blockHash: confirmation.block_hash,
+      blockNumber: confirmation.block_no,
+      slot: confirmation.slot_no,
+      blockTime: confirmation.block_time,
+      transactionSizeBytes: confirmation.size,
+    }),
+  };
+
+  if (submittedHash && confirmation) {
+    const receiptPath = saveJsonArtifact(`transactions/${submittedHash}.json`, {
+      schemaVersion: 1,
+      generatedAt: new Date().toISOString(),
+      mode: "local",
+      result: summary,
+      privacy: {
+        secretsIncluded: false,
+        addressesIncluded: false,
+        signedCborIncluded: false,
       },
-      null,
-      2,
-    ),
-  );
+    });
+    if (receiptPath) console.log(`Transaction receipt saved: ${receiptPath}`);
+  }
+
+  console.log(JSON.stringify(summary, null, 2));
+  return summary;
 };
 
 const waitForConfirmation = async (
   provider: DemeterBlockfrostProvider,
   txHash: string,
-): Promise<void> => {
+): Promise<DetailedTransaction> => {
   const deadline = Date.now() + 5 * 60_000;
   while (Date.now() < deadline) {
-    if (await provider.getTransactionDetails(txHash)) return;
+    const transaction = await provider.getTransactionDetails(txHash);
+    if (transaction) return transaction.data;
     await new Promise((resolve) => setTimeout(resolve, 5_000));
   }
   throw new Error(
@@ -304,7 +406,7 @@ const waitForConfirmation = async (
   );
 };
 
-const runFireblocks = async (): Promise<void> => {
+const runFireblocks = async (): Promise<Record<string, unknown>> => {
   if (!enabled("RUN_LIVE_FIREBLOCKS")) {
     throw new Error(
       "Set RUN_LIVE_FIREBLOCKS=1 to authorize real signing and broadcast",
@@ -336,10 +438,22 @@ const runFireblocks = async (): Promise<void> => {
       recipientAddress: required("CARDANO_ADDRESS_2"),
       lovelaceAmount: transferAmount(),
     });
-    await waitForConfirmation(provider, result.txHash);
+    const confirmation = await waitForConfirmation(provider, result.txHash);
     console.log(
       `Fireblocks/Demeter POC confirmed transaction ${result.txHash}`,
     );
+    return {
+      network,
+      mode: "fireblocks",
+      transactionHash: result.txHash,
+      explorerUrl: previewExplorerUrl(result.txHash),
+      confirmed: true,
+      blockHash: confirmation.block_hash,
+      blockNumber: confirmation.block_no,
+      slot: confirmation.slot_no,
+      blockTime: confirmation.block_time,
+      transactionSizeBytes: confirmation.size,
+    };
   } finally {
     await sdk.shutdown();
   }
@@ -349,14 +463,48 @@ const main = async (): Promise<void> => {
   Logger.setLogLevel(enabled("POC_VERBOSE") ? LogLevel.INFO : LogLevel.NONE);
 
   const mode = (process.env.CUSTODY_MODE || "mock").toLowerCase();
-  if (mode === "mock") {
-    await runLocal(false);
-  } else if (mode === "local") {
-    await runLocal(true);
-  } else if (mode === "fireblocks") {
-    await runFireblocks();
-  } else {
-    throw new Error("CUSTODY_MODE must be 'mock', 'local', or 'fireblocks'");
+  let summary: Record<string, unknown>;
+  try {
+    if (mode === "mock") {
+      summary = await runLocal(false);
+    } else if (mode === "local") {
+      summary = await runLocal(true);
+    } else if (mode === "fireblocks") {
+      summary = await runFireblocks();
+    } else {
+      throw new Error("CUSTODY_MODE must be 'mock', 'local', or 'fireblocks'");
+    }
+
+    const logPath = saveJsonArtifact(
+      `runs/${runStartedAt.replace(/[:.]/g, "-")}-${mode}.json`,
+      {
+        schemaVersion: 1,
+        startedAt: runStartedAt,
+        finishedAt: new Date().toISOString(),
+        mode,
+        status: "succeeded",
+        events: runLog,
+        summary,
+      },
+    );
+    if (logPath) console.log(`Run log saved: ${logPath}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    logEvent("error", `Run failed: ${message}`);
+    const logPath = saveJsonArtifact(
+      `runs/${runStartedAt.replace(/[:.]/g, "-")}-${mode}-failed.json`,
+      {
+        schemaVersion: 1,
+        startedAt: runStartedAt,
+        finishedAt: new Date().toISOString(),
+        mode,
+        status: "failed",
+        events: runLog,
+        error: message,
+      },
+    );
+    if (logPath) console.error(`Failed run log saved: ${logPath}`);
+    throw error;
   }
 };
 

@@ -1,0 +1,30 @@
+Cardano + Demeter on-chain transfer
+Network: Preview | Amount: 2 ADA
+Live local custody: this will spend Preview test ADA and broadcast the transaction.
+
+[1/8] Checking the Demeter Blockfrost connection...
+[2/8] Reading the source address balance from Cardano Preview...
+[3/8] Finding enough unspent transaction outputs (UTxOs)...
+[4/8] Building the unsigned transaction and calculating its fee...
+[5/8] Creating and verifying a local test witness...
+[6/8] Submitting signed CBOR through Demeter...
+Submitted transaction: becf7855c04240e0f0961f2bf646e22ad4fa0f75fbe45f15ca2af31a77bee800
+Explorer: https://preview.cardanoscan.io/transaction/becf7855c04240e0f0961f2bf646e22ad4fa0f75fbe45f15ca2af31a77bee800
+[7/8] Waiting for the transaction to appear on-chain...
+[8/8] Confirmed on Cardano Preview.
+
+{
+  "network": "preview",
+  "balanceAda": "9495.525083 ADA",
+  "balanceLovelace": 9495525083,
+  "selectedUtxos": 1,
+  "transferAda": "2 ADA",
+  "transferLovelace": 2000000,
+  "feeAda": "0.170297 ADA",
+  "feeLovelace": 170297,
+  "witnessVerified": true,
+  "submitted": true,
+  "confirmed": true,
+  "transactionHash": "becf7855c04240e0f0961f2bf646e22ad4fa0f75fbe45f15ca2af31a77bee800",
+  "explorerUrl": "https://preview.cardanoscan.io/transaction/becf7855c04240e0f0961f2bf646e22ad4fa0f75fbe45f15ca2af31a77bee800"
+}
