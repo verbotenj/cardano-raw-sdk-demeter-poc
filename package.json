@@ -12,6 +12,8 @@
     "poc:mock": "CUSTODY_MODE=mock tsx src/index.ts",
     "poc:local": "CUSTODY_MODE=local tsx src/index.ts",
     "poc:fireblocks": "CUSTODY_MODE=fireblocks tsx src/index.ts",
+    "proof:demeter": "npm run check && npm run test:proof && npm run poc:mock && npm run proof:demeter:live",
+    "proof:demeter:live": "tsx src/prove-demeter-readme.ts",
     "proof:verify": "tsx src/verify-governance-proof.ts",
     "test": "npm run test:proof",
     "test:proof": "tsx src/governance-proof.test.ts"
@@ -21,7 +23,7 @@
     "@fireblocks/ts-sdk": "^12.1.1",
     "bip39": "^3.1.0",
     "blakejs": "^1.2.1",
-    "cardano-raw-sdk": "git+https://github.com/verbotenj/cardano-raw-sdk.git#38f8e71cadc90dd0d43a25a6f5051c10fa18ab8c",
+    "cardano-raw-sdk": "git+https://github.com/verbotenj/cardano-raw-sdk.git#ecd341b20e3aa4d258429d95a94890d8dfcae166",
     "dotenv": "^16.5.0"
   },
   "devDependencies": {
