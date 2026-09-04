@@ -6,24 +6,12 @@ import {
   DemeterBlockfrostProvider,
 } from "cardano-raw-sdk";
 import dotenv from "dotenv";
+import {
+  parseConfirmedReceipt,
+  verifyOnChainProof,
+} from "./on-chain-proof.js";
 
 dotenv.config({ path: process.env.CARDANO_ENV_FILE || ".env.development" });
-
-interface ConfirmedReceipt {
-  network: string;
-  transaction: {
-    hash: string;
-    feeLovelace: number;
-    transactionSizeBytes: number;
-    confirmed: boolean;
-  };
-  confirmation: {
-    blockHash: string;
-    blockNumber: number;
-    slot: number;
-    blockTime: string;
-  };
-}
 
 interface ProofCheck {
   claim: string;
@@ -90,9 +78,9 @@ const main = async (): Promise<void> => {
     baseUrl: required("DEMETER_BLOCKFROST_URL"),
     apiKey: required("DEMETER_API_KEY"),
   });
-  const receipt = JSON.parse(
-    readFileSync(receiptPath, "utf8"),
-  ) as ConfirmedReceipt;
+  const receipt = parseConfirmedReceipt(
+    JSON.parse(readFileSync(receiptPath, "utf8")) as unknown,
+  );
   const transactionHash = (
     process.env.PROOF_TRANSACTION_HASH || receipt.transaction.hash
   ).trim();
@@ -212,27 +200,35 @@ const main = async (): Promise<void> => {
     transaction.data.tx_hash.toLowerCase() === transactionHash.toLowerCase(),
     "Demeter transaction hash does not match the requested hash",
   );
-  if (transactionHash === receipt.transaction.hash) {
-    assert(
-      transaction.data.block_hash === receipt.confirmation.blockHash &&
-        transaction.data.block_no === receipt.confirmation.blockNumber &&
-        transaction.data.slot_no === receipt.confirmation.slot &&
-        transaction.data.block_time === receipt.confirmation.blockTime &&
-        transaction.data.fee === receipt.transaction.feeLovelace &&
-        transaction.data.size === receipt.transaction.transactionSizeBytes,
-      "Live Demeter transaction data does not match the saved on-chain receipt",
-    );
-  }
+  const chainVerification =
+    transactionHash === receipt.transaction.hash
+      ? verifyOnChainProof({
+          receipt,
+          networkMagic,
+          currentSlot,
+          transaction: {
+            transactionHash: transaction.data.tx_hash,
+            blockHash: transaction.data.block_hash,
+            blockNumber: transaction.data.block_no,
+            slot: transaction.data.slot_no,
+            blockTime: transaction.data.block_time,
+            feeLovelace: transaction.data.fee,
+            transactionSizeBytes: transaction.data.size,
+          },
+        })
+      : undefined;
   passed("Confirmed transaction details are readable through Demeter", {
     transactionHash,
-    receiptCrossCheck:
-      transactionHash === receipt.transaction.hash
-        ? "matched"
-        : "not-requested",
+    receiptCrossCheck: chainVerification ? "matched" : "not-requested",
+    blockHash: transaction.data.block_hash,
     blockNumber: transaction.data.block_no,
     slot: transaction.data.slot_no,
     feeLovelace: transaction.data.fee,
     transactionSizeBytes: transaction.data.size,
+    ...(chainVerification && {
+      currentSlot: chainVerification.currentSlot,
+      confirmationDepthSlots: chainVerification.confirmationDepthSlots,
+    }),
   });
 
   const report = {

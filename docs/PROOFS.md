@@ -137,6 +137,7 @@ only after a configured Fireblocks workspace completes `npm run poc:fireblocks`.
 | Source code            | The live path calls the SDK with the Demeter provider                     | That an unmodified checkout produced a particular transaction |
 | Local execution log    | The process reported each SDK/Demeter stage                               | Independent or tamper-proof provider attestation              |
 | Transaction receipt    | Hash, amount, fee, block, slot, and confirmation returned by the provider | Server-side proof that Demeter handled the request            |
+| Chain verification     | A fresh Demeter lookup matches the committed receipt and Preview network  | Which local process originally submitted the transaction      |
 | Demeter server records | Requests reached the configured Demeter resource                          | Local source revision unless correlated with the receipt      |
 
 Local logs and repository files can be changed by their owner, so they are an
@@ -166,6 +167,21 @@ Or run the complete safe README compatibility proof:
 npm run proof:demeter
 jq . output/proofs/demeter-readme-compatibility.json
 ```
+
+To isolate the chain check from wallet setup, run the dedicated read-only proof:
+
+```bash
+npm run proof:chain
+jq . output/proofs/on-chain-verification.json
+```
+
+It requires the Demeter URL and API key, but no mnemonic or wallet address. It
+looks up the saved transaction through Demeter and rejects any mismatch in the
+network magic, transaction hash, block hash/number, slot/time, fee, or byte size.
+The parser also rejects receipts that are unconfirmed or claim to include
+sensitive data. See the committed [JSON report](../examples/on-chain-verification.json),
+[text log](../examples/on-chain-verification.txt), and offline tamper tests in
+[`src/on-chain-proof.test.ts`](../src/on-chain-proof.test.ts).
 
 After checking the configured Preview recipient and amount, create another
 on-chain proof:
