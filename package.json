@@ -11,14 +11,17 @@
     "demo": "CUSTODY_MODE=mock tsx src/index.ts",
     "poc:mock": "CUSTODY_MODE=mock tsx src/index.ts",
     "poc:local": "CUSTODY_MODE=local tsx src/index.ts",
-    "poc:fireblocks": "CUSTODY_MODE=fireblocks tsx src/index.ts"
+    "poc:fireblocks": "CUSTODY_MODE=fireblocks tsx src/index.ts",
+    "proof:verify": "tsx src/verify-governance-proof.ts",
+    "test": "npm run test:proof",
+    "test:proof": "tsx src/governance-proof.test.ts"
   },
   "dependencies": {
     "@emurgo/cardano-serialization-lib-nodejs": "^15.0.3",
     "@fireblocks/ts-sdk": "^12.1.1",
     "bip39": "^3.1.0",
     "blakejs": "^1.2.1",
-    "cardano-raw-sdk": "git+https://github.com/verbotenj/cardano-raw-sdk.git#main",
+    "cardano-raw-sdk": "git+https://github.com/verbotenj/cardano-raw-sdk.git#f7ab5f9fc651b1e5d45a77b7ede3dac03012349d",
     "dotenv": "^16.5.0"
   },
   "devDependencies": {
