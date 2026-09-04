@@ -43,6 +43,8 @@
       },
       "preflight": {
         "network": "preview",
+        "providerNetworkMagic": 2,
+        "expectedNetworkMagic": 2,
         "recipientAllowed": true,
         "amountLovelace": 2000000,
         "feeLovelace": 170000,

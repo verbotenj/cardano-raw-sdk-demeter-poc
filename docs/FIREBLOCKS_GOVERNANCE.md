@@ -26,6 +26,13 @@ operators, custodians, exchanges, fintech teams, compliance reviewers, incident
 responders, and auditors because they can follow one operation from intent to
 public settlement without exposing credentials or approver identities.
 
+Put simply, this turns RAW signing from “please sign this opaque hash” into a
+controlled handoff with a before-and-after receipt. A mistaken recipient, wrong
+testnet, excessive fee, altered transaction, or unexpected signer is stopped
+before Demeter can broadcast it. When everything succeeds, business operators,
+security engineers, and Cardano developers can all point to the same operation
+without needing to trust one system's log in isolation.
+
 This is Fireblocks **transaction governance**. It is separate from Cardano
 on-chain governance features such as DRep registration, delegation, and voting.
 
@@ -66,11 +73,58 @@ something more useful than “Fireblocks signed some data.” They let it prove:
 > Fireblocks signed the checked Cardano payment, that same payment was submitted
 > through Demeter, and Cardano later confirmed it.
 
+## The nine proof checkpoints
+
+The goal is not merely to produce a transaction hash. The POC must preserve one
+explainable chain of evidence:
+
+1. **Build with Cardano Raw SDK.** The SDK selects Cardano UTxOs and creates the
+   transaction body; the POC does not substitute a hidden transaction builder.
+2. **Validate the complete payment.** Before signing, the SDK checks the
+   recipient, amount, provider network magic, fee, selected inputs, recipient
+   output, change output, value conservation, and native-asset preservation.
+3. **Create one business correlation ID.** The POC generates a unique
+   `externalTxId` and sends it with the exact transaction-body hash to Fireblocks.
+4. **Require the company controls.** The Fireblocks TAP authorization groups must
+   meet their thresholds, and every reported signer must be in the POC's
+   designated-signer allowlist.
+5. **Record the authorization result.** The receipt keeps the Fireblocks
+   transaction ID, terminal status, signed message hash, and a sanitized copy of
+   the matched `authorizationInfo` logic, groups, thresholds, and status counts.
+6. **Verify the signature locally.** The returned Ed25519 signature must verify
+   against the exact body hash, and its public key must control the source
+   Cardano address.
+7. **Add only the witness.** After witness assembly, the SDK compares the body
+   bytes again and refuses to continue if anything changed.
+8. **Submit through Demeter.** The signed binary CBOR goes to Demeter's
+   Blockfrost-compatible `/tx/submit` endpoint.
+9. **Close the correlation loop.** The receipt ties together the business
+   `externalTxId`, Fireblocks ID, body hash, signed-message hash, Demeter submission
+   hash, and confirmed Cardano transaction hash.
+
+### What “matched policy” means here
+
+The Fireblocks transaction response exposes `authorizationInfo`: the approval
+logic, authorization groups, group thresholds, user approval statuses, and
+`signedBy` user IDs. The receipt field named `matchedPolicy` is a sanitized,
+validated summary of that response. User identities are reduced to counts before
+the receipt is saved.
+
+It is not a stable TAP rule identifier. The normal transaction response used by
+this SDK does not expose the policy rule's `externalDescriptor`; Fireblocks also
+documents the callback `action` rule information as deprecated and not officially
+maintained. If an audit requires the exact TAP rule ID or policy version, correlate
+the receipt's Fireblocks transaction ID and `externalTxId` with the Fireblocks
+audit log or an approved transaction-approval callback archive. The POC says this
+explicitly so `matchedPolicy` is not mistaken for evidence Fireblocks did not
+actually return.
+
 ## Controls enforced by the SDK
 
 Before Fireblocks is called, the fork validates:
 
-- Preview network on both source and recipient addresses;
+- Demeter `/genesis` reports Preview network magic `2`;
+- Preview/testnet network IDs on both source and recipient addresses;
 - the exact recipient against a local allowlist;
 - the transfer amount and an explicit maximum fee;
 - every transaction input against the selected UTxOs;
@@ -194,6 +248,7 @@ A successful receipt contains:
 - Fireblocks terminal status and sanitized authorization-group counts;
 - required and observed approval/signer counts;
 - preflight network, amount, fee ceiling, input/output totals, and asset result;
+- expected and observed Demeter network magic;
 - exact transaction-body, signed-message, Demeter submission, and confirmed
   Cardano hashes, with separate match assertions for submission and confirmation;
 - signature, source signer, immutable body, and confirmation booleans;
@@ -212,9 +267,10 @@ request/usage records, and an independent Cardano explorer or node.
 The SDK governed pipeline is covered by automated tests using a real Cardano
 transaction body and real Ed25519 signatures with mocked Fireblocks and Demeter
 responses. Those tests cover the successful correlation and rejection for a
-disallowed recipient, excessive fee, insufficient approvals, insufficient or
-undesignated signers, mismatched Fireblocks IDs, incomplete Fireblocks status,
-invalid signatures, and mismatched Demeter submission hashes.
+wrong Demeter network, disallowed recipient, excessive fee, insufficient approvals,
+insufficient or undesignated signers, invalid Fireblocks authorization logic,
+mismatched Fireblocks IDs, incomplete Fireblocks status, invalid signatures, and
+mismatched Demeter submission hashes.
 
 The repository does **not** claim a live Fireblocks governance result yet because
 no Fireblocks workspace credentials and policy were available in the development
