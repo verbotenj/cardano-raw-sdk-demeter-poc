@@ -5,10 +5,11 @@ the Demeter-enabled
 [`verbotenj/cardano-raw-sdk`](https://github.com/verbotenj/cardano-raw-sdk) fork.
 It uses Cardano **Preview**, reads blockchain data through Demeter's
 Blockfrost-compatible API, builds a 2 ADA transaction, and verifies a local test
-signature.
+signature. An explicitly gated local-custody command can then submit that signed
+transaction through Demeter and return a real Preview transaction hash.
 
 The default `mock` mode **never submits or broadcasts the transaction**. You do
-not need Fireblocks credentials to complete this guide.
+not need Fireblocks credentials for either the mock or local on-chain flow.
 
 ## What you will learn
 
@@ -20,7 +21,9 @@ By running the example, you will see the main parts of a Cardano transfer:
 4. Build an unsigned transaction with an input, recipient output, change, fee,
    and expiry slot.
 5. Derive the payment key from a **test-wallet** recovery phrase.
-6. Create and verify a witness (signature) locally, without broadcasting.
+6. Create and verify a witness (signature) locally.
+7. When explicitly enabled, submit the signed CBOR through Demeter and wait for
+   on-chain confirmation.
 
 The POC consumes the SDK from its fork; it does not duplicate SDK source code.
 
@@ -41,9 +44,9 @@ The POC consumes the SDK from its fork; it does not duplicate SDK source code.
 The data flow is:
 
 ```text
-your test wallet -> this POC -> Demeter Blockfrost API -> Cardano Preview
-                         |
-                         +-> build + verify locally (mock mode stops here)
+your test wallet -> this POC -> build + sign locally
+                                      |
+             mock stops here <--------+--------> Demeter -> Cardano Preview
 ```
 
 ## What Demeter provides
@@ -98,16 +101,17 @@ cp .env.example .env.development
 
 Open `.env.development` and set these values:
 
-| Variable                 | Beginner value                | Purpose                                    |
-| ------------------------ | ----------------------------- | ------------------------------------------ |
-| `CARDANO_NETWORK`        | `Preview`                     | Prevents the tutorial from using mainnet   |
-| `CUSTODY_MODE`           | `mock`                        | Builds and signs locally but never submits |
-| `DEMETER_BLOCKFROST_URL` | Your Preview resource URL     | Demeter API endpoint                       |
-| `DEMETER_API_KEY`        | Your private key              | Authenticates requests to Demeter          |
-| `CARDANO_MNEMONIC`       | Disposable test-wallet phrase | Derives the local payment key              |
-| `CARDANO_ADDRESS_1`      | Funded source `addr_test1...` | Supplies the UTxOs                         |
-| `CARDANO_ADDRESS_2`      | Different `addr_test1...`     | Receives the example output                |
-| `LIVE_TRANSFER_LOVELACE` | `2000000`                     | Builds a 2 ADA transfer                    |
+| Variable                 | Beginner value                | Purpose                                     |
+| ------------------------ | ----------------------------- | ------------------------------------------- |
+| `CARDANO_NETWORK`        | `Preview`                     | Prevents the tutorial from using mainnet    |
+| `CUSTODY_MODE`           | `mock`                        | Builds and signs locally but never submits  |
+| `DEMETER_BLOCKFROST_URL` | Your Preview resource URL     | Demeter API endpoint                        |
+| `DEMETER_API_KEY`        | Your private key              | Authenticates requests to Demeter           |
+| `CARDANO_MNEMONIC`       | Disposable test-wallet phrase | Derives the local payment key               |
+| `CARDANO_ADDRESS_1`      | Funded source `addr_test1...` | Supplies the UTxOs                          |
+| `CARDANO_ADDRESS_2`      | Different `addr_test1...`     | Receives the example output                 |
+| `LIVE_TRANSFER_LOVELACE` | `2000000`                     | Builds a 2 ADA transfer                     |
+| `RUN_LIVE_LOCAL`         | `0`                           | Explicit gate for local on-chain submission |
 
 Leave every `FIREBLOCKS_*` value empty and keep `RUN_LIVE_FIREBLOCKS=0` for the
 beginner flow.
@@ -146,12 +150,44 @@ The runner prints six stages followed by a summary similar to:
   "feeAda": "0.17 ADA",
   "feeLovelace": 170000,
   "witnessVerified": true,
-  "submitted": false
+  "submitted": false,
+  "confirmed": false
 }
 ```
 
 Your balance, selected UTxO count, and exact fee will differ. The two results to
 look for are `witnessVerified: true` and `submitted: false`.
+
+## 4. Submit the transfer on-chain
+
+After the mock succeeds, the same locally derived Preview payment key can sign
+and submit the transaction without Fireblocks. This command spends 2 Preview
+test ADA from `CARDANO_ADDRESS_1`, sends it to `CARDANO_ADDRESS_2`, and pays a
+Preview network fee:
+
+```bash
+RUN_LIVE_LOCAL=1 npm run poc:local
+```
+
+`RUN_LIVE_LOCAL=1` is the explicit broadcast gate. The command prints the
+transaction hash as soon as Demeter accepts the signed CBOR, provides a Cardano
+Preview explorer URL, and polls Demeter until the transaction is confirmed.
+
+A successful result ends with values like:
+
+```json
+{
+  "witnessVerified": true,
+  "submitted": true,
+  "confirmed": true,
+  "transactionHash": "...",
+  "explorerUrl": "https://preview.cardanoscan.io/transaction/..."
+}
+```
+
+On-chain transactions cannot be undone. Although Preview ADA has no real-world
+value, always verify `CARDANO_ADDRESS_2` and the amount before running this
+command.
 
 ## Where to look in the code
 
@@ -163,7 +199,8 @@ The complete walkthrough is intentionally kept in
 - `buildAdaTransactionWithCalculatedFee()` creates the transaction body.
 - `derivePaymentKey()` follows the Cardano CIP-1852 payment-key path.
 - `assertPaymentKeyMatchesAddress()` prevents signing with the wrong phrase.
-- `runMock()` performs the safe six-stage tutorial.
+- `runLocal(false)` performs the safe six-stage mock tutorial.
+- `runLocal(true)` assembles, submits, and confirms the local-custody transfer.
 - `runFireblocks()` is the separately gated advanced path.
 
 For the provider implementation itself, see
@@ -197,6 +234,12 @@ uses a different derivation path. Do not work around this check.
 ### Mock mode is restricted to Preview
 
 Restore `CARDANO_NETWORK=Preview`. This is a deliberate safety boundary.
+
+### Set `RUN_LIVE_LOCAL=1` to authorize broadcasting
+
+The on-chain command is intentionally blocked without an explicit live flag.
+Run `RUN_LIVE_LOCAL=1 npm run poc:local` after verifying the recipient and
+amount.
 
 For additional SDK logs:
 

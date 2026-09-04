@@ -10,6 +10,7 @@
     "check": "npm run typecheck && npm run build",
     "demo": "CUSTODY_MODE=mock tsx src/index.ts",
     "poc:mock": "CUSTODY_MODE=mock tsx src/index.ts",
+    "poc:local": "CUSTODY_MODE=local tsx src/index.ts",
     "poc:fireblocks": "CUSTODY_MODE=fireblocks tsx src/index.ts"
   },
   "dependencies": {
