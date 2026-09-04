@@ -34,31 +34,31 @@ This page audits the feature list in the
 
 ## Feature-by-feature result
 
-| Claim in the original README | Demeter status | Evidence and beginner explanation |
-| --- | --- | --- |
-| Fireblocks vault management and signing | **Fireblocks-side; automated proof only** | Fireblocks supplies the address/public key and signs. Demeter never holds that private key. The governed ADA tests mock the external Fireblocks boundary and verify a real Ed25519 signature, but this repository has no live Fireblocks receipt. |
-| Balance by address | **Live proven** | `npm run proof:demeter:live` reads the address in both flat and policy-grouped form and checks that both answers agree. |
-| Balance by credential or stake key | **Not supported by Demeter yet** | These calls require the SDK's `credential-and-stake-queries` capability. The initial Demeter provider advertises only `core`. |
-| Native ADA, address-to-address transfer | **Live proven on Preview** | The saved transaction sent 2 ADA, paid a 0.170297 ADA fee, and was confirmed in Preview block 4,629,643. |
-| Native ADA with Fireblocks custody | **Implemented; automated proof only** | The SDK builds the body, requests Fireblocks RAW signing, verifies the returned signature, submits through the provider, and checks the returned hash. A live proof still needs a configured Fireblocks workspace. |
-| Single Cardano native-token transfer | **Implemented, not live proven** | Selection, building, signing, and submission use the same Demeter `core` methods, but this POC has not submitted a CNT transaction. |
-| Multiple native tokens in one transfer | **Implemented, not live proven** | The code path is provider-neutral, and Demeter normalizes multi-asset UTxOs. There is no confirmed multi-token receipt in this POC. |
-| Vault-to-vault transfer | **Fireblocks-side plus core; not live proven** | Fireblocks resolves the destination vault address. The resulting Cardano transaction can use Demeter, but this POC has no live vault-to-vault receipt. |
-| ADA fee estimation | **Live proven** | The same SDK builder calculated the 170,297 lovelace fee recorded in the confirmed transaction receipt. |
-| Single-token and multi-token fee estimation | **Implemented, not live proven** | Fees are calculated locally from transaction bodies after Demeter supplies UTxOs and the latest slot. No CNT fee receipt is included. |
-| UTxO lookup and multi-asset normalization | **Live plus automated proof** | The live command checks normalized Preview UTxOs. SDK tests additionally cover pagination, empty pages, policy grouping, malformed responses, and unsafe quantities. |
-| UTxO consolidation | **Implemented, not live proven** | Consolidation reads UTxOs, builds locally, signs, and submits through the core provider. The POC intentionally has not spent funds just to create this proof. |
-| Transaction details by hash | **Live proven** | The proof command reads the saved transaction through Demeter and compares its block, slot, time, fee, and size with the committed receipt. |
-| Full basic/detailed transaction history | **Not supported by Demeter yet** | One transaction can be looked up by hash, but paginated address history still needs the SDK's `history` capability. |
-| DRep registration, voting, and DRep delegation | **Not supported by Demeter yet** | These are Cardano protocol-governance operations from the original IAGON implementation. They are different from the Fireblocks signing controls documented in this POC. |
-| Stake registration, pool delegation, reward withdrawal | **Not supported by Demeter yet** | These methods require the `staking` capability. |
-| Pool metadata, delegators, and blocks | **Not supported by Demeter yet** | These methods require the `pools` capability. |
-| Asset metadata and supply | **Not supported by Demeter yet** | Demeter returns on-chain asset quantities for the core path, but the richer metadata endpoint requires `asset-metadata`. |
-| Mainnet, preprod, and preview | **Code-supported; Preview live proven** | The fork recognizes all three networks. Governed signing checks Demeter `/genesis` against the expected network magic before Fireblocks is called. This beginner POC deliberately allows live local signing only on Preview. |
-| Connection pooling | **Provider-independent** | Pooling manages SDK instances. It is application infrastructure, not Cardano data supplied by Demeter. |
-| REST API server | **Configured for Demeter; not live proven here** | The server accepts `CHAIN_PROVIDER=demeter`. Routes backed by `core` work; routes requiring an unsupported capability return an error. |
-| Docker support | **Provider-independent** | A Docker image packages the application. It does not prove any Cardano endpoint works. |
-| Fireblocks webhook verification | **Fireblocks-side** | Signature verification is independent of Demeter. The initial Demeter transaction-detail response does not include full inputs and outputs, so rich token webhook enrichment is not claimed. |
+| Claim in the original README                           | Demeter status                                   | Evidence and beginner explanation                                                                                                                                                                                                                 |
+| ------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fireblocks vault management and signing                | **Fireblocks-side; automated proof only**        | Fireblocks supplies the address/public key and signs. Demeter never holds that private key. The governed ADA tests mock the external Fireblocks boundary and verify a real Ed25519 signature, but this repository has no live Fireblocks receipt. |
+| Balance by address                                     | **Live proven**                                  | `npm run proof:demeter:live` reads the address in both flat and policy-grouped form and checks that both answers agree.                                                                                                                           |
+| Balance by credential or stake key                     | **Not supported by Demeter yet**                 | These calls require the SDK's `credential-and-stake-queries` capability. The initial Demeter provider advertises only `core`.                                                                                                                     |
+| Native ADA, address-to-address transfer                | **Live proven on Preview**                       | The saved transaction sent 2 ADA, paid a 0.170297 ADA fee, and was confirmed in Preview block 4,629,643.                                                                                                                                          |
+| Native ADA with Fireblocks custody                     | **Implemented; automated proof only**            | The SDK builds the body, requests Fireblocks RAW signing, verifies the returned signature, submits through the provider, and checks the returned hash. A live proof still needs a configured Fireblocks workspace.                                |
+| Single Cardano native-token transfer                   | **Implemented, not live proven**                 | Selection, building, signing, and submission use the same Demeter `core` methods, but this POC has not submitted a CNT transaction.                                                                                                               |
+| Multiple native tokens in one transfer                 | **Implemented, not live proven**                 | The code path is provider-neutral, and Demeter normalizes multi-asset UTxOs. There is no confirmed multi-token receipt in this POC.                                                                                                               |
+| Vault-to-vault transfer                                | **Fireblocks-side plus core; not live proven**   | Fireblocks resolves the destination vault address. The resulting Cardano transaction can use Demeter, but this POC has no live vault-to-vault receipt.                                                                                            |
+| ADA fee calculation in the transfer builder            | **Live proven**                                  | The live SDK-built transaction produced the 170,297 lovelace fee recorded on-chain. This is indirect evidence for fee logic, not a live call to the separate public `estimateAdaTransactionFee()` method.                                         |
+| Single-token and multi-token fee estimation            | **Implemented, not live proven**                 | Fees are calculated locally from transaction bodies after Demeter supplies UTxOs and the latest slot. No CNT fee receipt is included.                                                                                                             |
+| UTxO lookup and multi-asset normalization              | **Live plus automated proof**                    | The live command checks normalized Preview UTxOs. SDK tests additionally cover pagination, empty pages, policy grouping, malformed responses, and unsafe quantities.                                                                              |
+| UTxO consolidation                                     | **Implemented, not live proven**                 | Consolidation reads UTxOs, builds locally, signs, and submits through the core provider. The POC intentionally has not spent funds just to create this proof.                                                                                     |
+| Transaction details by hash                            | **Live proven**                                  | The proof command reads the saved transaction through Demeter and compares its block, slot, time, fee, and size with the committed receipt.                                                                                                       |
+| Full basic/detailed transaction history                | **Not supported by Demeter yet**                 | One transaction can be looked up by hash, but paginated address history still needs the SDK's `history` capability.                                                                                                                               |
+| DRep registration, voting, and DRep delegation         | **Not supported by Demeter yet**                 | These are Cardano protocol-governance operations from the original IAGON implementation. They are different from the Fireblocks signing controls documented in this POC.                                                                          |
+| Stake registration, pool delegation, reward withdrawal | **Not supported by Demeter yet**                 | These methods require the `staking` capability.                                                                                                                                                                                                   |
+| Pool metadata, delegators, and blocks                  | **Not supported by Demeter yet**                 | These methods require the `pools` capability.                                                                                                                                                                                                     |
+| Asset metadata and supply                              | **Not supported by Demeter yet**                 | Demeter returns on-chain asset quantities for the core path, but the richer metadata endpoint requires `asset-metadata`.                                                                                                                          |
+| Mainnet, preprod, and preview                          | **Code-supported; Preview live proven**          | The fork recognizes all three networks. Governed signing checks Demeter `/genesis` against the expected network magic before Fireblocks is called. This beginner POC deliberately allows live local signing only on Preview.                      |
+| Connection pooling                                     | **Provider-independent**                         | Pooling manages SDK instances. It is application infrastructure, not Cardano data supplied by Demeter.                                                                                                                                            |
+| REST API server                                        | **Configured for Demeter; not live proven here** | The server accepts `CHAIN_PROVIDER=demeter`. Routes backed by `core` work; routes requiring an unsupported capability return an error.                                                                                                            |
+| Docker support                                         | **Provider-independent**                         | A Docker image packages the application. It does not prove any Cardano endpoint works.                                                                                                                                                            |
+| Fireblocks webhook verification                        | **Fireblocks-side**                              | Signature verification is independent of Demeter. The initial Demeter transaction-detail response does not include full inputs and outputs, so rich token webhook enrichment is not claimed.                                                      |
 
 ## Run the safe proof
 
@@ -69,7 +69,7 @@ npm ci
 npm run proof:demeter
 ```
 
-That one command performs four gates:
+That one command performs five gates:
 
 1. Type-checks and builds the POC.
 2. Verifies the governance receipt logic.
@@ -78,12 +78,16 @@ That one command performs four gates:
    cannot submit.
 4. Calls live Demeter endpoints, proves `/genesis` reports Preview network magic
    `2`, and cross-checks the known confirmed transaction.
+5. Independently re-reads the committed receipt by hash and rejects any network,
+   block, slot, time, fee, or size mismatch.
 
-The last gate writes a sanitized report to:
+The live compatibility gate writes a sanitized report to:
 
 ```text
 output/proofs/demeter-readme-compatibility.json
 ```
+
+The final chain gate writes `output/proofs/on-chain-verification.json`.
 
 The report does not contain the API key, mnemonic, wallet addresses, signed CBOR,
 or any Fireblocks secret. The proof command never calls `/tx/submit`.

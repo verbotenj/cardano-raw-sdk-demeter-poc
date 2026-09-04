@@ -49,7 +49,7 @@ which SDK or provider sent it.
 
 The dependency and execution path provide reproducible SDK provenance:
 
-1. [`package.json`](../package.json#L26) pins `cardano-raw-sdk` directly to the
+1. [`package.json`](../package.json#L31) pins `cardano-raw-sdk` directly to the
    governed fork commit.
 2. [`package-lock.json`](../package-lock.json#L799) resolves that dependency
    to exact SDK commit
@@ -60,9 +60,9 @@ The dependency and execution path provide reproducible SDK provenance:
    ADA transaction builder, TTL calculator, input builder, and submission helper
    from `cardano-raw-sdk`.
 4. The POC calls the SDK's
-   [`fetchAndSelectUtxosForAda()`](../src/index.ts#L264),
-   [`buildAdaTransactionWithCalculatedFee()`](../src/index.ts#L283), and
-   [`submitTransaction()`](../src/index.ts#L329) functions in the live
+   [`fetchAndSelectUtxosForAda()`](../src/index.ts#L275),
+   [`buildAdaTransactionWithCalculatedFee()`](../src/index.ts#L294), and
+   [`submitTransaction()`](../src/index.ts#L340) functions in the live
    execution path.
 5. The SDK submission helper serializes the signed transaction to CBOR and
    delegates it to the selected `CardanoDataProvider`:
@@ -77,7 +77,7 @@ confirmation use the Cardano Raw SDK fork.
 
 The provider route is explicit from configuration to HTTP request:
 
-1. [`createProvider()`](../src/index.ts#L192) creates the SDK-exported
+1. [`createProvider()`](../src/index.ts#L203) creates the SDK-exported
    `DemeterBlockfrostProvider` with `DEMETER_BLOCKFROST_URL` and
    `DEMETER_API_KEY`.
 2. The SDK provider identifies itself as `kind = "demeter"` and implements the
@@ -105,7 +105,7 @@ The POC now passes a strict `governance` object into the fork's public
 
 1. The POC generates a fresh `externalTxId`, pins the only permitted recipient,
    sets an explicit fee ceiling and approval/signer counts, and calls the SDK:
-   [`runFireblocks()`](../src/index.ts#L421).
+   [`runFireblocks()`](../src/index.ts#L439).
 2. The SDK preflight validates the complete locally built transaction before the
    Fireblocks request, including Demeter's authoritative network magic:
    [`FireblocksCardanoRawSDK.ts`](https://github.com/verbotenj/cardano-raw-sdk/blob/411f8ecc00b78cbecd950fb53b2dbd9c492951ba/src/FireblocksCardanoRawSDK.ts#L1717-L1957).
