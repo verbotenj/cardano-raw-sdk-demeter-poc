@@ -240,7 +240,7 @@ const main = async (): Promise<void> => {
     generatedAt: new Date().toISOString(),
     proofScope: "upstream-readme-demeter-core",
     upstreamReadmeRevision: "4fe86e8af026f26281ca1ab6f44d4395e5a58409",
-    sdkForkRevision: "10728f966fde07874342ba4e22938eaff4196d00",
+    sdkForkRevision: "411f8ecc00b78cbecd950fb53b2dbd9c492951ba",
     network: "preview",
     provider: "demeter",
     readOnly: true,
