@@ -185,6 +185,17 @@ A successful result ends with values like:
 }
 ```
 
+Every execution also writes a timestamped structured log under `output/runs/`.
+A confirmed local transfer writes a separate receipt under
+`output/transactions/<transaction-hash>.json`. The receipt contains the amount,
+fee, CBOR byte size, block, slot, confirmation time, and explorer URL. It omits
+wallet addresses, credentials, the recovery phrase, and signed CBOR.
+
+This repository includes the sanitized evidence from its first confirmed run:
+
+- [Confirmed transaction receipt](examples/confirmed-preview-transaction.json)
+- [On-chain execution log](examples/confirmed-preview-run.txt)
+
 On-chain transactions cannot be undone. Although Preview ADA has no real-world
 value, always verify `CARDANO_ADDRESS_2` and the amount before running this
 command.
@@ -202,6 +213,8 @@ The complete walkthrough is intentionally kept in
 - `runLocal(false)` performs the safe six-stage mock tutorial.
 - `runLocal(true)` assembles, submits, and confirms the local-custody transfer.
 - `runFireblocks()` is the separately gated advanced path.
+- `logEvent()` creates timestamped structured execution events.
+- `saveJsonArtifact()` writes local run logs and transaction receipts.
 
 For the provider implementation itself, see
 [`DemeterBlockfrostProvider`](https://github.com/verbotenj/cardano-raw-sdk/blob/main/src/services/demeter-blockfrost.provider.ts)
@@ -274,6 +287,8 @@ It remains restricted to Preview and a transfer amount between 1 and 5 ADA.
 - Use a disposable Preview wallet containing only test ADA.
 - The runner never prints the mnemonic, API key, PEM content, or signed
   transaction CBOR.
+- Generated `output/` artifacts are ignored by Git. Review and sanitize any log
+  before deliberately sharing it.
 
 ## Learn more
 

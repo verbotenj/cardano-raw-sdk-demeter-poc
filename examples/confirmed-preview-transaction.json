@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "network": "preview",
+  "mode": "local",
+  "transaction": {
+    "hash": "becf7855c04240e0f0961f2bf646e22ad4fa0f75fbe45f15ca2af31a77bee800",
+    "explorerUrl": "https://preview.cardanoscan.io/transaction/becf7855c04240e0f0961f2bf646e22ad4fa0f75fbe45f15ca2af31a77bee800",
+    "transferAda": "2 ADA",
+    "transferLovelace": 2000000,
+    "feeAda": "0.170297 ADA",
+    "feeLovelace": 170297,
+    "transactionSizeBytes": 299,
+    "witnessVerified": true,
+    "submitted": true,
+    "confirmed": true
+  },
+  "confirmation": {
+    "blockHash": "2c08961c68da4ba1c5d1246dfc48917c6ed5dfb37d2df6c6f51c58192d978434",
+    "blockNumber": 4629643,
+    "slot": 121833286,
+    "blockTime": "2026-09-04T02:34:46.000Z"
+  },
+  "privacy": {
+    "secretsIncluded": false,
+    "addressesIncluded": false,
+    "signedCborIncluded": false
+  }
+}
