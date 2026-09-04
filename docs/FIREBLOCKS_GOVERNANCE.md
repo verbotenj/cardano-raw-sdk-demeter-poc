@@ -31,23 +31,40 @@ on-chain governance features such as DRep registration, delegation, and voting.
 
 ## Why the SDK adds governance types
 
-The official Fireblocks SDK already models `authorizationInfo`, authorization
-group statuses, `signedBy`, `externalTxId`, and the returned signature. Those types
-describe the Fireblocks transaction, and this POC uses them internally. Fireblocks
-does not provide a type for a decoded Cardano transaction or for a proof that spans
-Fireblocks, Demeter, and Cardano.
+Think of the transfer as a payment form that must be checked, approved, signed, and
+then delivered.
 
-The fork therefore adds two small public contracts:
+The POC first fills in the complete Cardano payment form. It knows:
 
-- `FireblocksGovernanceRequirements` describes what this Cardano operation must
-  enforce locally: recipient allowlist, fee ceiling, approval count, signer count,
-  and unique external ID.
-- `FireblocksGovernanceEvidence` is the sanitized result that correlates Cardano
-  preflight values with the existing Fireblocks fields and the Demeter/Cardano hash.
+- who will receive the ADA;
+- how much ADA will be sent;
+- which wallet funds will be spent;
+- how much will return to the sender as change;
+- the network fee; and
+- whether any Cardano tokens must be returned safely with the change.
 
-They do not replace TAP and do not implement another policy engine. Their purpose is
-to prove that “Fireblocks signed something” means “Fireblocks authorized and signed
-the exact Cardano transaction that Demeter submitted.”
+The POC then creates a unique fingerprint of that form, called the **transaction
+body hash**. In a Fireblocks RAW signing request, Fireblocks receives this
+fingerprint. Fireblocks can apply its approval policy and sign it, but it does not
+automatically turn the fingerprint back into the beginner-friendly Cardano payment
+details listed above.
+
+The two new types are simply a checklist and a receipt:
+
+- `FireblocksGovernanceRequirements` is the **checklist before signing**. It says
+  which recipient is allowed, the highest acceptable fee, and how many approved
+  people and designated signers are required.
+- `FireblocksGovernanceEvidence` is the **receipt after Fireblocks signing and
+  Demeter submission**. It records that the checks passed, Fireblocks approved and
+  signed the fingerprint, and Demeter accepted the matching transaction. The POC
+  then adds Cardano confirmation details after the transaction appears on-chain.
+
+These types do not replace Fireblocks TAP and do not create a second policy system.
+Fireblocks still decides who may approve and sign. The extra types let the POC prove
+something more useful than “Fireblocks signed some data.” They let it prove:
+
+> Fireblocks signed the checked Cardano payment, that same payment was submitted
+> through Demeter, and Cardano later confirmed it.
 
 ## Controls enforced by the SDK
 
