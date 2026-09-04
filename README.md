@@ -49,6 +49,45 @@ your test wallet -> this POC -> build + sign locally
              mock stops here <--------+--------> Demeter -> Cardano Preview
 ```
 
+## Why Fireblocks governance changes the POC
+
+For an individual test wallet, one person can decide, sign, and submit. A company
+usually needs those responsibilities separated. The governed mode turns a Cardano
+transfer into a traceable chain of decisions:
+
+```text
+business intent
+    -> SDK validates recipient, amount, network, fee, inputs, outputs, and change
+    -> Fireblocks TAP approval groups authorize the exact transaction-body hash
+    -> a designated Fireblocks signer signs that hash
+    -> the SDK verifies the signature and proves the body did not change
+    -> Demeter submits the signed CBOR
+    -> Cardano confirms the same hash on Preview
+```
+
+That is interesting to Fireblocks users because it connects institutional custody
+controls to a chain that is not handled by a native one-call transfer in this
+integration. Fireblocks remains the authority for **who may approve and sign**;
+Demeter is limited to **reading and submitting Cardano data**; Cardano supplies the
+public settlement record. The application and Demeter never receive the private
+key.
+
+Treasury teams, custodians, exchanges, fintech developers, auditors, and compliance
+teams benefit from the resulting correlation record. A single receipt links the
+unique business operation ID, Fireblocks transaction ID, approval/signing quorum,
+Cardano transaction-body hash, Demeter submission hash, and confirmed Cardano hash.
+This is Fireblocks **transaction governance**, not Cardano protocol governance such
+as DRep voting.
+
+The repository includes the complete advanced walkthrough in
+[`docs/FIREBLOCKS_GOVERNANCE.md`](docs/FIREBLOCKS_GOVERNANCE.md). It also contains a
+clearly labeled simulated receipt so a beginner can inspect and validate the proof
+shape without Fireblocks credentials:
+
+```bash
+npm run proof:verify
+```
+
 ## What Demeter provides
 
 [Demeter](https://demeter.run/) hosts Cardano infrastructure so this example
@@ -115,6 +154,11 @@ Open `.env.development` and set these values:
 
 Leave every `FIREBLOCKS_*` value empty and keep `RUN_LIVE_FIREBLOCKS=0` for the
 beginner flow.
+
+For the governed Fireblocks flow, configure the workspace policy and advanced
+variables described in
+[`docs/FIREBLOCKS_GOVERNANCE.md`](docs/FIREBLOCKS_GOVERNANCE.md). The live command
+is deliberately unavailable until `RUN_LIVE_FIREBLOCKS=1` is set.
 
 If the source address needs test ADA, use the
 [official Cardano testnet faucet](https://docs.cardano.org/cardano-testnets/tools/faucet/)
@@ -214,6 +258,8 @@ The complete walkthrough is intentionally kept in
 - `runLocal(false)` performs the safe six-stage mock tutorial.
 - `runLocal(true)` assembles, submits, and confirms the local-custody transfer.
 - `runFireblocks()` is the separately gated advanced path.
+- `verifyGovernanceReceipt()` checks the cross-system hashes and control results
+  in a saved receipt.
 - `logEvent()` creates timestamped structured execution events.
 - `saveJsonArtifact()` writes local run logs and transaction receipts.
 

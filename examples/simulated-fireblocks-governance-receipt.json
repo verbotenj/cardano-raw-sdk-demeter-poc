@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "simulated-fireblocks-governed-transfer",
+  "generatedAt": "2026-09-04T00:00:00.000Z",
+  "result": {
+    "network": "preview",
+    "mode": "fireblocks",
+    "transactionHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "confirmed": true,
+    "governance": {
+      "externalTxId": "cardano-demeter-poc-example-not-live",
+      "fireblocksTransactionId": "fireblocks-example-not-live",
+      "fireblocksStatus": "COMPLETED",
+      "chainProvider": "demeter",
+      "submittedTransactionHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "transactionBodyHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "signedMessageHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "matchedPolicy": {
+        "authorizationInfoPresent": true,
+        "evidenceSource": "fireblocks-authorization-info",
+        "logic": "AND",
+        "allowOperatorAsAuthorizer": false,
+        "groups": [
+          {
+            "threshold": 1,
+            "approved": 1,
+            "pending": 0,
+            "rejected": 0,
+            "notApplicable": 0,
+            "satisfied": true
+          }
+        ],
+        "approvedAuthorizers": 1,
+        "signerCount": 1,
+        "designatedSignerEvidencePresent": true,
+        "minimumApprovals": 1,
+        "minimumSigners": 1,
+        "requirementsSatisfied": true
+      },
+      "preflight": {
+        "network": "preview",
+        "recipientAllowed": true,
+        "amountLovelace": 2000000,
+        "feeLovelace": 170000,
+        "maxFeeLovelace": 300000,
+        "inputCount": 1,
+        "inputLovelace": 10000000,
+        "outputCount": 2,
+        "recipientLovelace": 2000000,
+        "changeLovelace": 7830000,
+        "assetsPreserved": true
+      },
+      "signatureVerified": true,
+      "signerMatchesSource": true,
+      "transactionBodyUnchanged": true,
+      "onChainHashMatchesBody": true
+    }
+  },
+  "privacy": {
+    "secretsIncluded": false,
+    "approverIdentitiesIncluded": false,
+    "addressesIncluded": false,
+    "signedCborIncluded": false
+  },
+  "notice": "Simulated schema example only. This is not a Fireblocks or Cardano transaction receipt."
+}
