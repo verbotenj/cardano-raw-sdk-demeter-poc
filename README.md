@@ -195,6 +195,7 @@ This repository includes the sanitized evidence from its first confirmed run:
 
 - [Confirmed transaction receipt](examples/confirmed-preview-transaction.json)
 - [On-chain execution log](examples/confirmed-preview-run.txt)
+- [Proof chain: Cardano Raw SDK, Demeter, and on-chain evidence](docs/PROOFS.md)
 
 On-chain transactions cannot be undone. Although Preview ADA has no real-world
 value, always verify `CARDANO_ADDRESS_2` and the amount before running this
