@@ -8,6 +8,9 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run build",
+    "audit:prod": "npm audit --omit=dev --audit-level=moderate",
+    "quality": "npm run check && npm run test:proof && npm run audit:prod && npm run docs:verify",
+    "docs:verify": "node scripts/verify-docs.mjs",
     "demo": "CUSTODY_MODE=mock tsx src/index.ts",
     "poc:mock": "CUSTODY_MODE=mock tsx src/index.ts",
     "poc:local": "CUSTODY_MODE=local tsx src/index.ts",
@@ -26,7 +29,7 @@
     "@fireblocks/ts-sdk": "^12.1.1",
     "bip39": "^3.1.0",
     "blakejs": "^1.2.1",
-    "cardano-raw-sdk": "git+https://github.com/verbotenj/cardano-raw-sdk.git#411f8ecc00b78cbecd950fb53b2dbd9c492951ba",
+    "cardano-raw-sdk": "https://github.com/verbotenj/cardano-raw-sdk/archive/0258cba572c1b262154fed38015ba1566962a3e5.tar.gz",
     "dotenv": "^16.5.0"
   },
   "devDependencies": {
@@ -37,5 +40,8 @@
   "engines": {
     "node": ">=20"
   },
-  "license": "ISC"
+  "license": "ISC",
+  "overrides": {
+    "uuid": "^11.1.1"
+  }
 }
