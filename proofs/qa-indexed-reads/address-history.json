@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "action": "address-history",
+  "startedAt": "2026-09-07T20:37:08.333Z",
+  "completedAt": "2026-09-07T20:37:10.838Z",
+  "status": "passed",
+  "expected": "Two distinct paginated history entries, block-height filtering, and full input/output hydration",
+  "evidence": {
+    "firstHash": "becf7855c04240e0f0961f2bf646e22ad4fa0f75fbe45f15ca2af31a77bee800",
+    "secondHash": "51a248639c074e4f567aad647a2635ce4feeaff10515187065013e4f5f333c9c",
+    "knownTotal": null,
+    "fullInputCount": 1,
+    "fullOutputCount": 2,
+    "fromBlock": 4629643,
+    "toBlock": 4629643,
+    "filteredCount": 1,
+    "blockFilterVerified": true
+  },
+  "network": "preview",
+  "networkMagic": 2,
+  "sdkEntryPoint": "FireblocksCardanoRawSDK.getChainQueries",
+  "artifactHashes": {
+    "FireblocksCardanoRawSDK.js": "68e8b31149738b673a5bbe869bb35d8f5031e4235efbe6ea37053d3af4654def",
+    "services/demeter-blockfrost.provider.js": "08ec27ef8f4196132cdd310992fb1ea1b97ad27f0a4e20b1720ededf2c0640d2",
+    "services/blockfrost.queries.js": "edcdbe24644f0cf68cecd9b19a2d8b7c0eba25708e8b67f148aa6ae69fdbddf6",
+    "services/chain-query.validation.js": "2d0e4fc60c47f944835de59bf76c9e3fd68e7eda90587b3c8b28e55d7a472c9a",
+    "utils/chain-queries.js": "04da197e111e8182fe88fcea52f792838a4a30374e1d763e9abb8dadf6d51117"
+  },
+  "runnerSha256": "91bb8184142313538b0ab52afa9bc0138e470e4ab80c6189b8ddc5a4c394f1d1",
+  "nodeVersion": "v24.16.0",
+  "submissionAttempts": 0,
+  "custodyCalls": 0,
+  "custodyBoundary": "throwing-test-double-never-called",
+  "privacy": {
+    "secretsIncluded": false,
+    "walletAddressesIncluded": false,
+    "cborIncluded": false
+  },
+  "limitations": "Sampled retained data; not complete Blockfrost parity, complete archive coverage, ledger governance, or live Fireblocks evidence"
+}
