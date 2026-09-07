@@ -6,7 +6,8 @@ The original Fireblocks README describes the **whole SDK with IAGON**. It does
 not mean that every listed feature automatically works when the chain provider
 is changed to Demeter.
 
-The Demeter fork currently proves the **core transaction path**:
+The saved Preview receipt proves the **core ADA transaction path with local
+signing**, not live Fireblocks custody:
 
 ```text
 read address + UTxOs -> build transaction -> calculate fee -> sign
@@ -63,11 +64,18 @@ The older `examples/` receipts remain historical evidence.
 
 ## Feature-by-feature result
 
+The matrix includes the original README claims and the narrower read operations
+added by this fork. Live labels refer to the saved, timestamped Preview samples;
+they are not guarantees about every deployment, account or historical record.
+
 | Claim in the original README                           | Demeter status                                   | Evidence and beginner explanation                                                                                                                                                                                                                 |
 | ------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Fireblocks vault management and signing                | **Fireblocks-side; automated proof only**        | Fireblocks supplies the address/public key and signs. Demeter never holds that private key. The governed ADA tests mock the external Fireblocks boundary and verify a real Ed25519 signature, but this repository has no live Fireblocks receipt. |
 | Balance by address                                     | **Live proven**                                  | `npm run proof:demeter:live` reads the address in both flat and policy-grouped form and checks that both answers agree.                                                                                                                           |
-| Balance by credential or stake key                     | **Not supported by Demeter yet**                 | These calls require the SDK's `credential-and-stake-queries` capability. The initial Demeter provider advertises only `core`.                                                                                                                     |
+| Balance by credential or stake key                     | **Legacy API not supported by Demeter yet**      | Legacy credential/stake balance calls still require `credential-and-stake-queries`. The separate stake account read below reports controlled amount, not payment-credential ownership or aggregated account assets. |
+| Stake account state and reward balance (new read API) | **Live proven: sampled account** | `getChainQueries().stakeAccount()` read an inactive account with zero available rewards; unknown active stake is not inferred from controlled amount. [Account proof](../proofs/qa-indexed-reads/stake-account.json). |
+| Payment addresses associated with a stake address (new read API) | **Live proven: bounded collection** | `getChainQueries().stakeAddresses()` found the configured source address. Association is not proof of control over its payment key. [Address proof](../proofs/qa-indexed-reads/stake-addresses.json). |
+| Historical stake rewards (new read API) | **Live proven: empty and nonzero samples** | `getChainQueries().stakeRewards()` read an empty source page and a nonzero historical reward from a sampled public pool delegator. Historical rewards do not prove a currently withdrawable balance. [Reward proof](../proofs/qa-indexed-reads/stake-rewards.json). |
 | Native ADA, address-to-address transfer                | **Live proven on Preview**                       | The saved transaction sent 2 ADA, paid a 0.170297 ADA fee, and was confirmed in Preview block 4,629,643.                                                                                                                                          |
 | Native ADA with Fireblocks custody                     | **Implemented; automated proof only**            | The SDK builds the body, requests Fireblocks RAW signing, verifies the returned signature, submits through the provider, and checks the returned hash. A live proof still needs a configured Fireblocks workspace.                                |
 | Single Cardano native-token transfer                   | **Implemented, not live proven**                 | Selection, building, signing, and submission use the same Demeter `core` methods, but this POC has not submitted a CNT transaction.                                                                                                               |
@@ -77,7 +85,7 @@ The older `examples/` receipts remain historical evidence.
 | Single-token and multi-token fee estimation            | **Implemented, not live proven**                 | Fees are calculated locally from transaction bodies after Demeter supplies UTxOs and the latest slot. No CNT fee receipt is included.                                                                                                             |
 | UTxO lookup and multi-asset normalization              | **Live plus automated proof**                    | The live command checks normalized Preview UTxOs. SDK tests additionally cover pagination, empty pages, policy grouping, malformed responses, and unsafe quantities.                                                                              |
 | UTxO consolidation                                     | **Implemented, not live proven**                 | Consolidation reads UTxOs, builds locally, signs, and submits through the core provider. The POC intentionally has not spent funds just to create this proof.                                                                                     |
-| Transaction details by hash                            | **Live proven**                                  | The proof command reads the saved transaction through Demeter and compares its block, slot, time, fee, and size with the committed receipt.                                                                                                       |
+| Transaction details by hash                            | **Live proven: header and full UTxOs**           | The proof command checks the saved header and actual inputs/outputs via `getFullTransactionDetails()`. Lightweight `getTransactionDetails()` remains explicitly incomplete (`utxosComplete: false`). [Payment proof](../proofs/qa-compatibility/02-confirmed-payment.json). |
 | Full basic/detailed transaction history | **Partial live proof: new read API** | `getChainQueries().addressHistory()` pages one address and optionally hydrates full details. Block-height filters are checked; archive completeness, vault-wide history and legacy history methods are not enabled for Demeter. |
 | DRep registration, voting, and DRep delegation         | **Not supported by Demeter yet**                 | These are Cardano protocol-governance operations from the original IAGON implementation. They are different from the Fireblocks signing controls documented in this POC.                                                                          |
 | Stake registration, pool delegation, reward withdrawal | **Not supported by Demeter yet**                 | These methods require the `staking` capability.                                                                                                                                                                                                   |
@@ -87,7 +95,7 @@ The older `examples/` receipts remain historical evidence.
 | Connection pooling                                     | **Provider-independent**                         | Pooling manages SDK instances. It is application infrastructure, not Cardano data supplied by Demeter.                                                                                                                                            |
 | REST API server                                        | **Configured for Demeter; not live proven here** | The server accepts `CHAIN_PROVIDER=demeter`. Routes backed by `core` work; routes requiring an unsupported capability return an error.                                                                                                            |
 | Docker support                                         | **Provider-independent**                         | A Docker image packages the application. It does not prove any Cardano endpoint works.                                                                                                                                                            |
-| Fireblocks webhook verification                        | **Fireblocks-side**                              | Signature verification is independent of Demeter. The initial Demeter transaction-detail response does not include full inputs and outputs, so rich token webhook enrichment is not claimed.                                                      |
+| Fireblocks webhook verification                        | **Fireblocks-side; rich Demeter enrichment not proven** | Signature verification is independent of Demeter. The webhook enrichment code still calls lightweight `getTransactionDetails()`, not the new full-detail method. Full UTxO reads alone do not establish rich token webhook support. |
 
 ## Run the safe proof
 
@@ -122,8 +130,19 @@ The final chain gate writes `output/proofs/on-chain-verification.json`.
 The report does not contain the API key, mnemonic, wallet addresses, signed CBOR,
 or any Fireblocks secret. The proof command never calls `/tx/submit`.
 
-The sanitized result of the repository maintainer's latest run is committed as
+A historical sanitized run is preserved in
 [`examples/demeter-readme-compatibility-proof.json`](../examples/demeter-readme-compatibility-proof.json).
+It is not the latest run and is not evidence that later code was executed.
+Transfer QA records live in [`proofs/qa-compatibility/`](../proofs/qa-compatibility/);
+indexed-read records live in [`proofs/qa-indexed-reads/`](../proofs/qa-indexed-reads/).
+Use each record's timestamp and executable hashes to identify what was tested.
+Do not relabel earlier receipts with the current dependency revision.
+
+The five-gate command above does **not** run the indexed-read checks. Run
+`npm run proof:qa:indexed` separately to reproduce those seven feature reads and
+the pool-detail boundary diagnostic. It needs the private Preview URL/key and
+source/destination addresses, but no mnemonic or Fireblocks credentials. See
+[the indexed-read guide](INDEXED_READS.md) for fixture and pagination limits.
 
 ## The separate on-chain proof
 
@@ -143,9 +162,31 @@ observed it. Cardano itself does not record the name of the SDK or API gateway.
 
 ## What would be required for full parity?
 
-Each missing group needs additional provider methods and tests, not just README
-wording. For example, full history would need Blockfrost address-transaction
-pagination plus input/output hydration; staking needs account, reward, and epoch
-data; pool operations need pool endpoints; and asset information needs metadata
-normalization. Only after those paths have contract tests and live evidence should
-they be marked as Demeter-supported.
+Address-history pagination and input/output hydration, basic asset normalization,
+stake account/address/reward reads, and pool metadata/delegator reads are already
+implemented and sampled live. They must not be described as missing.
+
+The remaining gaps are:
+
+- **History and ownership:** vault-wide history, payment-credential queries,
+  account asset aggregation, registration/delegation histories, and evidence of
+  complete archive retention. Paged results cover only provider-retained data.
+- **Staking and governance writes:** stake registration, delegation, withdrawals,
+  DRep registration and voting remain disabled. Read evidence is not write
+  evidence; these operations still need their prerequisites, validation and
+  transaction-path tests before any live acceptance claim.
+- **Pools:** aggregate/block statistics and eligibility validation remain
+  unavailable through this adapter. The saved [pool-detail diagnostic](../proofs/qa-indexed-reads/pool-detail-boundary.json)
+  observed HTTP 501 on the selected resource's `/pools/{id}` endpoint. This is a
+  point-in-time deployment observation, not a claim about all Demeter servers.
+- **Assets and legacy APIs:** separate mint/burn counts, first-mint time,
+  automatic metadata enrichment and legacy `getAssetInfo()` parity are not
+  proven. The new reads do not enable the old IAGON-shaped history/pool APIs.
+- **Other execution evidence:** live Fireblocks custody, native-token and
+  consolidation submissions, rich webhook enrichment, and mainnet/preprod
+  operation are not proven by these Preview records.
+
+Each additional claim needs matching code, tests and appropriately scoped live
+evidence. Local IAGON fixtures do not prove a live IAGON service; sampled Demeter
+responses do not prove full Blockfrost/Dolos parity, independent consensus
+validation or production security approval.

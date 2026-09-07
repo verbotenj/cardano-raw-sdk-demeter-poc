@@ -46,11 +46,44 @@ const compatibility = readFileSync(
 for (const staleClaim of [
   "performs four gates",
   "| ADA fee estimation | **Live proven**",
+  "full history would need Blockfrost address-transaction",
+  "repository maintainer's latest run",
+  "The initial Demeter transaction-detail response",
 ]) {
   if (compatibility.includes(staleClaim)) {
     failures.push(
       `docs/DEMETER_README_COMPATIBILITY.md: stale claim '${staleClaim}'`,
     );
+  }
+}
+
+// Guard the reconciled evidence boundaries, not general prose quality.
+for (const requiredText of [
+  "getChainQueries().stakeAccount()",
+  "getChainQueries().stakeAddresses()",
+  "getChainQueries().stakeRewards()",
+  "proof:qa:indexed",
+  "Historical rewards do not prove a currently withdrawable balance",
+  "It is not the latest run",
+  "utxosComplete: false",
+]) {
+  if (!compatibility.includes(requiredText)) {
+    failures.push(`Compatibility evidence boundary missing: ${requiredText}`);
+  }
+}
+for (const action of [
+  "stake-account",
+  "stake-addresses",
+  "stake-rewards",
+  "pool-detail-boundary",
+]) {
+  const relativePath = `proofs/qa-indexed-reads/${action}.json`;
+  const record = JSON.parse(readFileSync(resolve(root, relativePath), "utf8"));
+  if (!compatibility.includes(`../${relativePath}`) ||
+      record.action !== action || record.status !== "passed" ||
+      record.network !== "preview" || record.submissionAttempts !== 0 ||
+      record.custodyCalls !== 0) {
+    failures.push(`Compatibility claim lacks matching read-only Preview evidence: ${action}`);
   }
 }
 

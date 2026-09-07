@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "action": "compatibility-document-reconciliation",
+  "recordedAt": "2026-09-07T22:57:21Z",
+  "status": "passed",
+  "basePocRevision": "fb008b9",
+  "sdkRevision": "92654549c7efda7ff21567b2eeffd36e535996eb",
+  "expected": "Describe implemented reads, remaining gaps and historical evidence consistently with the pinned SDK and saved Preview QA records",
+  "observed": {
+    "dedicatedStakeReadRows": 3,
+    "legacyCredentialApiKeptSeparate": true,
+    "fullDetailsAndLightweightWebhookPathDistinguished": true,
+    "historicalExampleNotLabeledLatest": true,
+    "remainingGapsExcludeAlreadyImplementedReads": true,
+    "indexedReadCommandDocumentedSeparately": true,
+    "cleanInstallExitCode": 0,
+    "localQualityExitCode": 0,
+    "nodeVersion": "v24.16.0",
+    "existingProofCasesPassed": 34,
+    "markdownFilesChecked": 6,
+    "inMemoryVerifierMutationChecksPassed": [
+      "reject stale missing-history claim",
+      "reject historical receipt labeled latest",
+      "reject missing stake account read row",
+      "reject failed reward evidence",
+      "reject submission in read-only evidence"
+    ],
+    "productionAuditVulnerabilities": 0,
+    "newLiveQueries": 0,
+    "newTransactionsSubmitted": 0,
+    "liveFireblocksCalls": 0
+  },
+  "recordedFrom": "Source inspection, saved QA JSON records, npm ci, npm run quality and five isolated in-memory verifier mutation runs",
+  "limitations": [
+    "Documentation reconciliation does not rerun or upgrade historical on-chain evidence",
+    "Text/link/evidence guards are regression checks, not a complete semantic or security audit",
+    "Preview pool-detail HTTP 501 remains a saved deployment observation, not a fresh query"
+  ],
+  "secretsIncluded": false
+}
