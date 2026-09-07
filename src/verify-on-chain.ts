@@ -3,10 +3,9 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DemeterBlockfrostProvider } from "cardano-raw-sdk";
 import dotenv from "dotenv";
-import {
-  parseConfirmedReceipt,
-  verifyOnChainProof,
-} from "./on-chain-proof.js";
+import { verifyAdaPayment } from "./payment-proof.js";
+import { assertPreviewReadiness } from "./preview-safety.js";
+import { parseConfirmedReceipt, verifyOnChainProof } from "./on-chain-proof.js";
 
 dotenv.config({ path: process.env.CARDANO_ENV_FILE || ".env.development" });
 
@@ -34,16 +33,36 @@ const main = async (): Promise<void> => {
 
   const health = await provider.checkHealth();
   if (!health.success) throw new Error("Demeter health check failed");
-  console.log("PASS Demeter provider is healthy");
 
-  const [networkMagic, currentSlot, response] = await Promise.all([
+  const [networkMagic, tip, response] = await Promise.all([
     provider.getNetworkMagic(),
-    provider.getCurrentSlot(),
-    provider.getTransactionDetails(receipt.transaction.hash),
+    provider.getChainTip(),
+    provider.getFullTransactionDetails(receipt.transaction.hash),
   ]);
   if (!response?.success) {
     throw new Error("Saved transaction was not found through Demeter");
   }
+  const currentSlot = tip.slot;
+  const sender = required("CARDANO_ADDRESS_1");
+  const recipient = required("CARDANO_ADDRESS_2");
+  assertPreviewReadiness({
+    networkMagic,
+    tipTime: tip.time,
+    addresses: [sender, recipient],
+    maxTipAgeSeconds: Number(process.env.MAX_TIP_AGE_SECONDS || "300"),
+  });
+  const reread = await provider.getTransactionDetails(receipt.transaction.hash);
+  if (!reread?.success)
+    throw new Error("Transaction disappeared during inclusion recheck");
+  const payment = verifyAdaPayment({
+    transaction: response.data,
+    sender,
+    recipient,
+    lovelace: receipt.transaction.transferLovelace,
+    tipHeight: tip.height,
+    minimumConfirmations: Number(process.env.MIN_CONFIRMATIONS || "3"),
+    rereadBlockHash: reread.data.block_hash,
+  });
 
   const verification = verifyOnChainProof({
     receipt,
@@ -61,6 +80,12 @@ const main = async (): Promise<void> => {
   });
 
   const checks = [
+    {
+      claim:
+        "Actual recipient, ADA amount, change and native-asset conservation match intent",
+      status: "passed",
+      evidence: payment,
+    },
     {
       claim: "Demeter provider is healthy",
       status: "passed",
@@ -102,7 +127,7 @@ const main = async (): Promise<void> => {
     },
   ];
 
-  for (const check of checks.slice(1)) console.log(`PASS ${check.claim}`);
+  for (const check of checks) console.log(`PASS ${check.claim}`);
 
   const generatedAt = new Date().toISOString();
   const report = {
@@ -115,6 +140,7 @@ const main = async (): Promise<void> => {
     submittedTransaction: false,
     checks,
     result: verification,
+    payment,
     privacy: {
       apiKeyIncluded: false,
       mnemonicIncluded: false,
@@ -141,6 +167,9 @@ const main = async (): Promise<void> => {
     `Fee: ${verification.feeLovelace} lovelace | Size: ${verification.transactionSizeBytes} bytes`,
     "PASS transaction found on Cardano Preview",
     "PASS live chain fields match committed receipt",
+    `PASS recipient and ${payment.transferLovelace} lovelace checked against actual outputs`,
+    `PASS ${payment.inputCount} inputs / ${payment.outputCount} outputs; ADA and native assets conserved`,
+    `PASS ${payment.confirmations} block confirmations; inclusion unchanged on recheck`,
     "PASS no transaction was submitted by this verification",
     "",
   ].join("\n");

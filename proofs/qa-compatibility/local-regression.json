@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "action": "local-regression-and-package-verification",
+  "recordedAt": "2026-09-07T17:44:03Z",
+  "status": "passed",
+  "sdkRevision": "5719be731ea8cb4ebae4ef1c91a19f9593448156",
+  "expected": "Both repositories pass local quality gates, including the CI Node major; clean POC install uses the exact SDK archive tested by live QA",
+  "observed": {
+    "sdk": {
+      "command": "npm run quality",
+      "exitCode": 0,
+      "jestSuitesPassed": 13,
+      "jestTestsPassed": 332,
+      "nodeVersions": ["24.16.0", "20.20.2"],
+      "formatLintTypecheckBuildAndGeneratedDocs": "passed",
+      "productionAuditVulnerabilities": 0
+    },
+    "poc": {
+      "commands": ["npm ci", "npm run quality", "npm run proof:qa", "npm run proof:demeter"],
+      "exitCodes": [0, 0, 0, 0],
+      "governanceReceiptCases": 8,
+      "headerReceiptCases": 8,
+      "paymentAndReadinessTests": 18,
+      "qualityGateNodeVersions": ["24.16.0", "20.20.2"],
+      "liveProofNodeVersion": "24.16.0",
+      "productionAuditVulnerabilities": 0
+    },
+    "installedArchiveMatchesSdkCheckoutAndQaExecutableHashes": true,
+    "newTransactionsSubmitted": 0,
+    "hostedCiTriggeredByThisBatch": false
+  },
+  "investigationNote": "An earlier exploratory SDK run received one unexpected loopback HTTP 403 in the existing security test. The unchanged security test passed in subsequent full Node 24 and Node 20 gates. No authentication control was relaxed; the isolated transient response was not reproduced or attributed to a code cause.",
+  "limitations": ["This is local regression and sampled Preview evidence, not a security audit", "Fireblocks is mocked in SDK governance tests", "History, account/pool and staking/governance parity are not established"],
+  "secretsIncluded": false
+}

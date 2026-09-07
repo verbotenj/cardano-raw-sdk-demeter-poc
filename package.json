@@ -18,9 +18,10 @@
     "proof:demeter": "npm run check && npm run test:proof && npm run poc:mock && npm run proof:demeter:live && npm run proof:chain",
     "proof:demeter:live": "tsx src/prove-demeter-readme.ts",
     "proof:chain": "tsx src/verify-on-chain.ts",
+    "proof:qa": "tsx src/qa-compatibility.ts",
     "proof:verify": "tsx src/verify-governance-proof.ts",
     "test": "npm run test:proof",
-    "test:proof": "npm run test:governance-proof && npm run test:on-chain-proof",
+    "test:proof": "npm run test:governance-proof && npm run test:on-chain-proof && tsx --test src/payment-proof.test.ts",
     "test:governance-proof": "tsx src/governance-proof.test.ts",
     "test:on-chain-proof": "tsx src/on-chain-proof.test.ts"
   },
@@ -29,7 +30,7 @@
     "@fireblocks/ts-sdk": "^12.1.1",
     "bip39": "^3.1.0",
     "blakejs": "^1.2.1",
-    "cardano-raw-sdk": "https://github.com/verbotenj/cardano-raw-sdk/archive/0258cba572c1b262154fed38015ba1566962a3e5.tar.gz",
+    "cardano-raw-sdk": "https://github.com/verbotenj/cardano-raw-sdk/archive/5719be731ea8cb4ebae4ef1c91a19f9593448156.tar.gz",
     "dotenv": "^17.4.2"
   },
   "devDependencies": {

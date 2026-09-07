@@ -30,7 +30,33 @@ This page audits the feature list in the
   but this repository does not contain a confirmed transaction for that feature.
 - **Fireblocks-side** means Demeter is not responsible for the feature.
 - **Not supported by Demeter yet** means the SDK returns a clear
-  `ProviderCapabilityError` instead of pretending the result is available.
+  `ProviderCapabilityError` instead of pretending the result is available. This
+  label describes our adapter, not an absence of endpoints in Dolos or Demeter.
+
+## Additional verified checks
+
+The current implementation adds bounded UTxO scans, stricter provider validation,
+non-repeated submission with body-hash comparison, and Preview identity/address/
+tip checks in the local runner. `getFullTransactionDetails()` reads actual
+`/txs/{hash}/utxos` data; lightweight polling is explicitly marked incomplete.
+
+`proof:chain` now verifies the intended recipient amount, source change, native
+asset conservation, confirmation depth in blocks, and a second inclusion lookup.
+It needs both original addresses, but no mnemonic. The saved 2 ADA transaction is
+reused; no new transfer is needed. A successful check is a point-in-time observation
+through Demeter, not permanent finality or independent consensus verification.
+
+The Demeter SDK transfer builders fetch current protocol parameters. Local tests
+exercise changed fees and byte costs for ADA, CNT, multi-token and consolidation;
+live acceptance currently covers ADA construction only. Direct utility callers
+must supply the snapshot; legacy IAGON defaults and staking builders are unchanged.
+
+Run `npm run proof:qa` for one timestamped QA record per implemented action in
+[`proofs/qa-compatibility/`](../proofs/qa-compatibility/). These records include the
+executed provider/builder hashes, expected/actual results and submission count.
+History, rich metadata, account/pool and staking/governance parity are **not**
+enabled by these changes. The older matrix and `examples/` receipts describe their
+original evidence; the new proof records document the stronger checks above.
 
 ## Feature-by-feature result
 
@@ -78,8 +104,9 @@ That one command performs five gates:
    cannot submit.
 4. Calls live Demeter endpoints, proves `/genesis` reports Preview network magic
    `2`, and cross-checks the known confirmed transaction.
-5. Independently re-reads the committed receipt by hash and rejects any network,
-   block, slot, time, fee, or size mismatch.
+5. Re-reads the committed receipt by hash and rejects network, block, slot, time,
+   fee or size mismatches; checks actual payment outputs, source change, assets
+   and block depth with the configured original source/recipient addresses.
 
 The live compatibility gate writes a sanitized report to:
 

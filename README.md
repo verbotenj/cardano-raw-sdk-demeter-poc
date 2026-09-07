@@ -93,12 +93,12 @@ This is implemented behavior, not only a diagram:
 
 | Claim                                     | Code evidence                                                                                                                                                                                                                                                              |
 | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Both providers share one core contract    | [`CardanoDataProvider`](https://github.com/verbotenj/cardano-raw-sdk/blob/0258cba572c1b262154fed38015ba1566962a3e5/src/types/providers.ts#L19-L37) defines health, balance, UTxO, slot, submission, and confirmation operations.                                           |
-| Configuration accepts either provider     | [`ChainProviderConfig`](https://github.com/verbotenj/cardano-raw-sdk/blob/0258cba572c1b262154fed38015ba1566962a3e5/src/types/providers.ts#L39-L52) is an `iagon`/`demeter` TypeScript union.                                                                               |
-| The SDK performs the wiring               | [`createInstance()`](https://github.com/verbotenj/cardano-raw-sdk/blob/0258cba572c1b262154fed38015ba1566962a3e5/src/FireblocksCardanoRawSDK.ts#L243-L316) selects `IagonApiService` or `DemeterBlockfrostProvider`.                                                        |
-| IAGON remains supported                   | [`IagonApiService`](https://github.com/verbotenj/cardano-raw-sdk/blob/0258cba572c1b262154fed38015ba1566962a3e5/src/services/iagon.api.service.ts#L86-L104) implements the shared contract and retains the extended SDK feature set.                                        |
-| Demeter is a real provider implementation | [`DemeterBlockfrostProvider`](https://github.com/verbotenj/cardano-raw-sdk/blob/0258cba572c1b262154fed38015ba1566962a3e5/src/services/demeter-blockfrost.provider.ts#L75-L126) implements the contract, validates the resource URL, and authenticates with `dmtr-api-key`. |
-| This POC exercises the Demeter branch     | [`createProvider()`](src/index.ts#L203-L207) constructs Demeter for the local flow, while the [Fireblocks flow](src/index.ts#L480-L493) passes the Demeter configuration through `createInstance()`.                                                                       |
+| Both providers share one core contract    | [`CardanoDataProvider`](https://github.com/verbotenj/cardano-raw-sdk/blob/5719be731ea8cb4ebae4ef1c91a19f9593448156/src/types/providers.ts) defines health, balance, UTxO, slot, submission, and confirmation operations.                                           |
+| Configuration accepts either provider     | [`ChainProviderConfig`](https://github.com/verbotenj/cardano-raw-sdk/blob/5719be731ea8cb4ebae4ef1c91a19f9593448156/src/types/providers.ts) is an `iagon`/`demeter` TypeScript union.                                                                               |
+| The SDK performs the wiring               | [`createInstance()`](https://github.com/verbotenj/cardano-raw-sdk/blob/5719be731ea8cb4ebae4ef1c91a19f9593448156/src/FireblocksCardanoRawSDK.ts) selects `IagonApiService` or `DemeterBlockfrostProvider`.                                                        |
+| IAGON remains supported                   | [`IagonApiService`](https://github.com/verbotenj/cardano-raw-sdk/blob/5719be731ea8cb4ebae4ef1c91a19f9593448156/src/services/iagon.api.service.ts) implements the shared contract and retains the extended SDK feature set.                                        |
+| Demeter is a real provider implementation | [`DemeterBlockfrostProvider`](https://github.com/verbotenj/cardano-raw-sdk/blob/5719be731ea8cb4ebae4ef1c91a19f9593448156/src/services/demeter-blockfrost.provider.ts) implements the contract, validates the resource URL, and authenticates with `dmtr-api-key`. |
+| This POC exercises the Demeter branch     | [`createProvider()`](src/index.ts) constructs Demeter for the local flow, while the [Fireblocks flow](src/index.ts) passes the Demeter configuration through `createInstance()`.                                                                       |
 
 IAGON implements the SDK's broad, existing feature surface. Initial Demeter
 support intentionally targets the complete ADA-transfer path: health, network
@@ -111,7 +111,7 @@ the [Demeter compatibility audit](docs/DEMETER_README_COMPATIBILITY.md).
 
 | Proof layer        | What you can verify                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Source             | The dependency is pinned to the [Demeter-enabled SDK revision](https://github.com/verbotenj/cardano-raw-sdk/commit/0258cba572c1b262154fed38015ba1566962a3e5).                                                                                                                                                                                                                                                                |
+| Source             | The dependency is pinned to the [Demeter-enabled SDK revision](https://github.com/verbotenj/cardano-raw-sdk/commit/5719be731ea8cb4ebae4ef1c91a19f9593448156).                                                                                                                                                                                                                                                                |
 | Contract tests     | Provider tests cover normalized IAGON and Demeter behavior, including binary CBOR submission. The local [on-chain proof tests](src/on-chain-proof.test.ts) reject seven kinds of altered or unsafe evidence.                                                                                                                                                                                                                 |
 | Live Demeter reads | `npm run proof:demeter` checks Preview health, network, balance, UTxOs, slot, and an already-confirmed transaction. It does not broadcast.                                                                                                                                                                                                                                                                                   |
 | On-chain result    | The saved [receipt](examples/confirmed-preview-transaction.json), [execution log](examples/confirmed-preview-run.txt), [fresh chain-verification report](examples/on-chain-verification.json), and [Cardano explorer record](https://preview.cardanoscan.io/transaction/becf7855c04240e0f0961f2bf646e22ad4fa0f75fbe45f15ca2af31a77bee800) correlate the SDK-built transaction, Demeter submission, and Cardano confirmation. |
@@ -302,17 +302,28 @@ receipt with fresh Demeter transaction data. It never broadcasts a new
 transaction. The exact scope and unsupported features are documented in
 [`docs/DEMETER_README_COMPATIBILITY.md`](docs/DEMETER_README_COMPATIBILITY.md).
 
-To verify only the existing on-chain result—without a mnemonic, wallet address,
+To verify only the existing on-chain result—without a mnemonic,
 transaction build, or broadcast—run:
 
 ```bash
 npm run proof:chain
 ```
 
-This read-only check requires only the Demeter URL and API key. It verifies the
+This read-only check requires the Demeter URL/API key and the original source and
+recipient addresses in `CARDANO_ADDRESS_1` and `CARDANO_ADDRESS_2`. It verifies the
 Preview network magic, fetches the committed transaction, matches its hash,
 block, slot, time, fee, and byte size to the receipt, and writes sanitized JSON
-and text logs under `output/proofs/`.
+and text logs under `output/proofs/`. It also reads actual transaction inputs and
+outputs, verifies the recipient's 2 ADA, source change, ADA/token conservation,
+block confirmation depth, and unchanged inclusion on a second lookup. These are
+point-in-time observations from Demeter, not an independent node consensus check
+or proof of permanent finality.
+
+For one QA-style acceptance log per implemented action, run `npm run proof:qa`.
+The sanitized files in [`proofs/qa-compatibility/`](proofs/qa-compatibility/) record
+Preview readiness, the confirmed payment, and current-parameter construction.
+They include timestamps, expected/actual results, executable SDK hashes and zero
+submission attempts. They document executed checks, not full feature parity.
 
 The runner prints six stages followed by a summary similar to:
 

@@ -27,9 +27,11 @@ import {
   createTransactionInputs,
   fetchAndSelectUtxosForAda,
   submitTransaction,
+  validateProtocolParameters,
   type DetailedTransaction,
 } from "cardano-raw-sdk";
 import dotenv from "dotenv";
+import { assertPreviewReadiness } from "./preview-safety.js";
 
 dotenv.config({ path: process.env.CARDANO_ENV_FILE || ".env.development" });
 
@@ -260,6 +262,26 @@ const runLocal = async (
       "Demeter health check failed. Check DEMETER_BLOCKFROST_URL, DEMETER_API_KEY, and your internet connection.",
     );
   }
+  const [networkMagic, tip] = await Promise.all([
+    provider.getNetworkMagic(),
+    provider.getChainTip(),
+  ]);
+  assertPreviewReadiness({
+    networkMagic,
+    tipTime: tip.time,
+    addresses: [senderAddress, recipientAddress],
+    maxTipAgeSeconds: Number(process.env.MAX_TIP_AGE_SECONDS || "300"),
+  });
+  logEvent(
+    "provider-readiness",
+    "Verified Preview identity, address networks and recent chain tip",
+    {
+      networkMagic,
+      tipHeight: tip.height,
+      tipSlot: tip.slot,
+      tipAgeSeconds: Math.floor(Date.now() / 1000) - tip.time,
+    },
+  );
 
   step(
     2,
@@ -291,12 +313,15 @@ const runLocal = async (
   );
   const ttl = calculateTtl(await provider.getCurrentSlot());
   const inputs = createTransactionInputs(utxoResult.selectedUtxos);
+  const protocolParameters = await provider.getProtocolParameters();
+  validateProtocolParameters(protocolParameters, 2);
   const built = buildAdaTransactionWithCalculatedFee(
     {
       lovelaceAmount,
       recipientAddress: Address.from_bech32(recipientAddress),
       senderAddress: Address.from_bech32(senderAddress),
       selectedUtxos: utxoResult.selectedUtxos,
+      protocolParameters,
     },
     inputs,
     ttl,
@@ -304,6 +329,17 @@ const runLocal = async (
   );
 
   step(5, totalSteps, "Creating and verifying a local test witness...");
+  // Selection/pagination may take time: repeat readiness immediately before signing.
+  const [signingMagic, signingTip] = await Promise.all([
+    provider.getNetworkMagic(),
+    provider.getChainTip(),
+  ]);
+  assertPreviewReadiness({
+    networkMagic: signingMagic,
+    tipTime: signingTip.time,
+    addresses: [senderAddress, recipientAddress],
+    maxTipAgeSeconds: Number(process.env.MAX_TIP_AGE_SECONDS || "300"),
+  });
   const paymentKey = derivePaymentKey(mnemonic);
   assertPaymentKeyMatchesAddress(paymentKey, mnemonic, senderAddress);
   const hashBytes = Uint8Array.from(
