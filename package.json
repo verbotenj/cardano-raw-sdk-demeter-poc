@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "@emurgo/cardano-serialization-lib-nodejs": "^15.0.3",
-    "@fireblocks/ts-sdk": "^12.1.1",
+    "@fireblocks/ts-sdk": "^29.0.0",
     "bip39": "^3.1.0",
     "blakejs": "^1.2.1",
     "cardano-raw-sdk": "https://github.com/verbotenj/cardano-raw-sdk/archive/92654549c7efda7ff21567b2eeffd36e535996eb.tar.gz",
