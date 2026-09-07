@@ -60,11 +60,13 @@ if (lockfile.includes("git+ssh://git@github.com/verbotenj/cardano-raw-sdk")) {
     "package-lock.json: public SDK dependency must use HTTPS so CI needs no SSH key",
   );
 }
-if (
-  !lockfile.includes(
-    "cardano-raw-sdk/archive/0258cba572c1b262154fed38015ba1566962a3e5.tar.gz",
-  )
-) {
+const manifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
+const dependency = manifest.dependencies["cardano-raw-sdk"];
+const lock = JSON.parse(lockfile);
+if (!/^https:\/\/github\.com\/verbotenj\/cardano-raw-sdk\/archive\/[0-9a-f]{40}\.tar\.gz$/.test(dependency) ||
+    lock.packages[""].dependencies["cardano-raw-sdk"] !== dependency ||
+    lock.packages["node_modules/cardano-raw-sdk"].resolved !== dependency ||
+    !lock.packages["node_modules/cardano-raw-sdk"].integrity) {
   failures.push(
     "package-lock.json: SDK dependency is not pinned to the reviewed HTTPS archive",
   );

@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "action": "02-confirmed-payment",
+  "startedAt": "2026-09-07T17:42:25.212Z",
+  "completedAt": "2026-09-07T17:42:26.659Z",
+  "status": "passed",
+  "expected": "Saved receipt header, actual recipient/amount/change, asset conservation and stable block-depth check",
+  "provenance": {
+    "sdkProviderSha256": "b9e5eb4b8439db2d1bb238fa8db44d35d988339e4706566546c54843c81666c7",
+    "sdkBuilderSha256": "9e4ad1eff3f8f23fd5263c33a0c126c59ce6d2e8133fc5be696c6b7692f4acf7",
+    "runnerSha256": "dc1440c0e526f35b70ffcc5eabeb6d9cc3df695fe2a4a8694f466e357511a3bb",
+    "nodeVersion": "v24.16.0"
+  },
+  "scope": "live-preview-read-only-plus-local-construction",
+  "evidence": {
+    "transactionHash": "becf7855c04240e0f0961f2bf646e22ad4fa0f75fbe45f15ca2af31a77bee800",
+    "blockHash": "2c08961c68da4ba1c5d1246dfc48917c6ed5dfb37d2df6c6f51c58192d978434",
+    "headerMatchesReceipt": true,
+    "paymentVerified": true,
+    "transferLovelace": 2000000,
+    "inputCount": 1,
+    "outputCount": 2,
+    "changeLovelace": 9493354786,
+    "preservedAssetCount": 0,
+    "confirmations": 11265,
+    "minimumConfirmations": 3,
+    "inclusionStableAtRecheck": true,
+    "scope": "ordinary-two-output-ada-payment"
+  },
+  "submissionAttempts": 0,
+  "secretsIncluded": false,
+  "addressesIncluded": false,
+  "limitations": "Sampled Preview state, not full Blockfrost parity, node-independent consensus verification, or Fireblocks custody evidence"
+}

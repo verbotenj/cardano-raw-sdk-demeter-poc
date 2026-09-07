@@ -13,9 +13,10 @@ read address + UTxOs -> build transaction -> calculate fee -> sign
     -> submit binary CBOR -> read the confirmed transaction
 ```
 
-That core is enough for ADA and Cardano native-token transaction building. It is
-not enough for features that need additional indexed data, such as full history,
-stake rewards, DRep data, pool information, or asset metadata.
+That core is enough for ADA and Cardano native-token transaction building. The
+new `getChainQueries()` interface adds a verified subset of indexed reads:
+per-address history, basic asset details, stake accounts/addresses/rewards and
+individual pool metadata/delegators. It is not full indexed-data parity.
 
 This page audits the feature list in the
 [original README at revision `4fe86e8`](https://github.com/fireblocks/cardano-raw-sdk/blob/4fe86e8af026f26281ca1ab6f44d4395e5a58409/README.md).
@@ -30,7 +31,35 @@ This page audits the feature list in the
   but this repository does not contain a confirmed transaction for that feature.
 - **Fireblocks-side** means Demeter is not responsible for the feature.
 - **Not supported by Demeter yet** means the SDK returns a clear
-  `ProviderCapabilityError` instead of pretending the result is available.
+  `ProviderCapabilityError` instead of pretending the result is available. This
+  label describes our adapter, not an absence of endpoints in Dolos or Demeter.
+
+## Additional verified checks
+
+The current implementation adds bounded UTxO scans, stricter provider validation,
+non-repeated submission with body-hash comparison, and Preview identity/address/
+tip checks in the local runner. `getFullTransactionDetails()` reads actual
+`/txs/{hash}/utxos` data; lightweight polling is explicitly marked incomplete.
+
+`proof:chain` now verifies the intended recipient amount, source change, native
+asset conservation, confirmation depth in blocks, and a second inclusion lookup.
+It needs both original addresses, but no mnemonic. The saved 2 ADA transaction is
+reused; no new transfer is needed. A successful check is a point-in-time observation
+through Demeter, not permanent finality or independent consensus verification.
+
+The Demeter SDK transfer builders fetch current protocol parameters. Local tests
+exercise changed fees and byte costs for ADA, CNT, multi-token and consolidation;
+live acceptance currently covers ADA construction only. Direct utility callers
+must supply the snapshot; legacy IAGON defaults and staking builders are unchanged.
+
+Run `npm run proof:qa` for one timestamped QA record per implemented action in
+[`proofs/qa-compatibility/`](../proofs/qa-compatibility/). These records include the
+executed provider/builder hashes, expected/actual results and submission count.
+Those transfer-boundary changes did not enable full indexed-data parity. The
+subsequent read adapter is documented in [INDEXED_READS.md](INDEXED_READS.md) with
+[separate live QA records](../proofs/qa-indexed-reads/). The updated rows below refer
+to that narrow interface, not automatic support for the old IAGON-shaped APIs.
+The older `examples/` receipts remain historical evidence.
 
 ## Feature-by-feature result
 
@@ -49,11 +78,11 @@ This page audits the feature list in the
 | UTxO lookup and multi-asset normalization              | **Live plus automated proof**                    | The live command checks normalized Preview UTxOs. SDK tests additionally cover pagination, empty pages, policy grouping, malformed responses, and unsafe quantities.                                                                              |
 | UTxO consolidation                                     | **Implemented, not live proven**                 | Consolidation reads UTxOs, builds locally, signs, and submits through the core provider. The POC intentionally has not spent funds just to create this proof.                                                                                     |
 | Transaction details by hash                            | **Live proven**                                  | The proof command reads the saved transaction through Demeter and compares its block, slot, time, fee, and size with the committed receipt.                                                                                                       |
-| Full basic/detailed transaction history                | **Not supported by Demeter yet**                 | One transaction can be looked up by hash, but paginated address history still needs the SDK's `history` capability.                                                                                                                               |
+| Full basic/detailed transaction history | **Partial live proof: new read API** | `getChainQueries().addressHistory()` pages one address and optionally hydrates full details. Block-height filters are checked; archive completeness, vault-wide history and legacy history methods are not enabled for Demeter. |
 | DRep registration, voting, and DRep delegation         | **Not supported by Demeter yet**                 | These are Cardano protocol-governance operations from the original IAGON implementation. They are different from the Fireblocks signing controls documented in this POC.                                                                          |
 | Stake registration, pool delegation, reward withdrawal | **Not supported by Demeter yet**                 | These methods require the `staking` capability.                                                                                                                                                                                                   |
-| Pool metadata, delegators, and blocks                  | **Not supported by Demeter yet**                 | These methods require the `pools` capability.                                                                                                                                                                                                     |
-| Asset metadata and supply                              | **Not supported by Demeter yet**                 | Demeter returns on-chain asset quantities for the core path, but the richer metadata endpoint requires `asset-metadata`.                                                                                                                          |
+| Pool metadata, delegators, and blocks | **Partial live proof: individual reads** | `getChainQueries().poolMetadata()` and `.poolDelegators()` are verified. Pool block/aggregate statistics and eligibility validation remain disabled. |
+| Asset metadata and supply | **Partial live proof: basic asset read** | `getChainQueries().assetDetails()` preserves supply precision and metadata provenance. Separate mint/burn counts, first-mint time, automatic enrichment and legacy `getAssetInfo()` parity are not claimed. |
 | Mainnet, preprod, and preview                          | **Code-supported; Preview live proven**          | The fork recognizes all three networks. Governed signing checks Demeter `/genesis` against the expected network magic before Fireblocks is called. This beginner POC deliberately allows live local signing only on Preview.                      |
 | Connection pooling                                     | **Provider-independent**                         | Pooling manages SDK instances. It is application infrastructure, not Cardano data supplied by Demeter.                                                                                                                                            |
 | REST API server                                        | **Configured for Demeter; not live proven here** | The server accepts `CHAIN_PROVIDER=demeter`. Routes backed by `core` work; routes requiring an unsupported capability return an error.                                                                                                            |
@@ -78,8 +107,9 @@ That one command performs five gates:
    cannot submit.
 4. Calls live Demeter endpoints, proves `/genesis` reports Preview network magic
    `2`, and cross-checks the known confirmed transaction.
-5. Independently re-reads the committed receipt by hash and rejects any network,
-   block, slot, time, fee, or size mismatch.
+5. Re-reads the committed receipt by hash and rejects network, block, slot, time,
+   fee or size mismatches; checks actual payment outputs, source change, assets
+   and block depth with the configured original source/recipient addresses.
 
 The live compatibility gate writes a sanitized report to:
 

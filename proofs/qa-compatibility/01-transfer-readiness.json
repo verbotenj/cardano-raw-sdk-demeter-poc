@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "action": "01-transfer-readiness",
+  "startedAt": "2026-09-07T17:42:23.935Z",
+  "completedAt": "2026-09-07T17:42:25.211Z",
+  "status": "passed",
+  "expected": "Fresh Preview network, matching flat/grouped balance and bounded UTxO reads; no submission",
+  "provenance": {
+    "sdkProviderSha256": "b9e5eb4b8439db2d1bb238fa8db44d35d988339e4706566546c54843c81666c7",
+    "sdkBuilderSha256": "9e4ad1eff3f8f23fd5263c33a0c126c59ce6d2e8133fc5be696c6b7692f4acf7",
+    "runnerSha256": "dc1440c0e526f35b70ffcc5eabeb6d9cc3df695fe2a4a8694f466e357511a3bb",
+    "nodeVersion": "v24.16.0"
+  },
+  "scope": "live-preview-read-only-plus-local-construction",
+  "evidence": {
+    "networkMagic": 2,
+    "tipHeight": 4640907,
+    "tipSlot": 122146857,
+    "tipAgeSeconds": 88,
+    "utxoCount": 1,
+    "balanceMatchesUtxos": true,
+    "balanceGroupingLovelaceMatches": true
+  },
+  "submissionAttempts": 0,
+  "secretsIncluded": false,
+  "addressesIncluded": false,
+  "limitations": "Sampled Preview state, not full Blockfrost parity, node-independent consensus verification, or Fireblocks custody evidence"
+}

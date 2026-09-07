@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "action": "03-current-protocol-build",
+  "startedAt": "2026-09-07T17:42:26.660Z",
+  "completedAt": "2026-09-07T17:42:28.096Z",
+  "status": "passed",
+  "expected": "Current Preview parameters drive SDK construction; returned fee equals encoded fee and inputs equal outputs plus fee",
+  "provenance": {
+    "sdkProviderSha256": "b9e5eb4b8439db2d1bb238fa8db44d35d988339e4706566546c54843c81666c7",
+    "sdkBuilderSha256": "9e4ad1eff3f8f23fd5263c33a0c126c59ce6d2e8133fc5be696c6b7692f4acf7",
+    "runnerSha256": "dc1440c0e526f35b70ffcc5eabeb6d9cc3df695fe2a4a8694f466e357511a3bb",
+    "nodeVersion": "v24.16.0"
+  },
+  "scope": "live-preview-read-only-plus-local-construction",
+  "evidence": {
+    "parameters": {
+      "networkMagic": 2,
+      "fetchedAt": 1788802947279,
+      "epoch": 1413,
+      "minFeeA": 44,
+      "minFeeB": 155381,
+      "maxTxSize": 16384,
+      "coinsPerUtxoByte": 4310,
+      "keyDeposit": 2000000,
+      "poolDeposit": 500000000
+    },
+    "inputCount": 1,
+    "outputCount": 2,
+    "feeLovelace": 170297,
+    "feeMatchesEncodedBody": true,
+    "adaConserved": true,
+    "unsignedBodyBytes": 190,
+    "signed": false
+  },
+  "submissionAttempts": 0,
+  "secretsIncluded": false,
+  "addressesIncluded": false,
+  "limitations": "Sampled Preview state, not full Blockfrost parity, node-independent consensus verification, or Fireblocks custody evidence"
+}

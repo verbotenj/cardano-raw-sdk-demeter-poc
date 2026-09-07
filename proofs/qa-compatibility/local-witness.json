@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "action": "local-preview-witness",
+  "completedAt": "2026-09-07T17:42:34.866Z",
+  "status": "passed",
+  "command": "npm run poc:mock",
+  "sdkRevision": "5719be731ea8cb4ebae4ef1c91a19f9593448156",
+  "expected": "Read Preview state, build a 2 ADA payment with current parameters, sign using the private local test mnemonic and verify the witness without submitting",
+  "observed": {
+    "network": "preview",
+    "selectedUtxos": 1,
+    "transferLovelace": 2000000,
+    "feeLovelace": 170297,
+    "signedCborBytes": 300,
+    "witnessVerified": true,
+    "submitted": false,
+    "confirmed": false,
+    "exitCode": 0
+  },
+  "limitations": "Local mnemonic custody only; not Fireblocks signing evidence and not a newly confirmed transaction",
+  "secretsIncluded": false,
+  "addressesIncluded": false,
+  "signedCborIncluded": false
+}
